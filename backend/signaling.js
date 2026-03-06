@@ -11,58 +11,40 @@ function initSignaling(io) {
       callback({ success: true, meetingId });
     });
 
-    // Join existing meeting (host joins directly, non-host goes to waiting room)
+    // Join meeting — everyone joins directly, no waiting room
     socket.on('join-room', (data) => {
-      const { meetingId, username, consent, isHost } = data;
-      
-      // If they are the host, or if no meeting exists yet (they ARE the creator)
-      const hostId = meetings.getHost(meetingId);
-      
-      if (isHost || !hostId || hostId === socket.id) {
-        // Host joins directly
-        directJoin(socket, meetingId, username, consent, io);
-      } else {
-        // Non-host: add to waiting room, notify host
-        meetings.addToWaitingRoom(meetingId, socket.id, username);
-        socket.meetingId = meetingId;
-        socket.username = username;
-        
-        // Tell the requesting user to wait
-        socket.emit('waiting-for-host');
-        
-        // Notify the host
-        io.to(hostId).emit('user-requesting-join', {
-          socketId: socket.id,
-          username: username
-        });
-        
-        console.log(`[Socket] ${username} (${socket.id}) waiting to join: ${meetingId}`);
-      }
-    });
-
-    // Host admits a user from waiting room
-    socket.on('admit-user', (data) => {
-      const { meetingId, socketId } = data;
-      const admitted = meetings.admitFromWaitingRoom(meetingId, socketId);
-      if (admitted) {
-        // Tell the admitted user they can join
-        io.to(socketId).emit('admitted-to-meeting');
-        console.log(`[Socket] Host admitted ${admitted.username} to ${meetingId}`);
-      }
-    });
-
-    // Host denies a user
-    socket.on('deny-user', (data) => {
-      const { meetingId, socketId } = data;
-      meetings.removeFromWaitingRoom(meetingId, socketId);
-      io.to(socketId).emit('denied-from-meeting');
-      console.log(`[Socket] Host denied user ${socketId} from ${meetingId}`);
-    });
-
-    // Actual join after being admitted (or direct join for host)
-    socket.on('complete-join', (data) => {
       const { meetingId, username, consent } = data;
-      directJoin(socket, meetingId, username, consent, io);
+      
+      // Auto-create meeting if it doesn't exist
+      if (!meetings.getHost(meetingId)) {
+        meetings.createMeeting(socket.id, meetingId);
+      }
+      
+      const result = meetings.joinMeeting(meetingId, socket.id, username, consent);
+      if (!result.success) {
+        socket.emit('error-joining', { message: result.message });
+        return;
+      }
+
+      socket.join(meetingId);
+      socket.meetingId = meetingId;
+      socket.username = username;
+
+      console.log(`[Socket] ${username} (${socket.id}) joined meeting: ${meetingId}`);
+
+      // Tell the new user about existing users
+      const usersInRoom = meetings.getUsersInMeeting(meetingId).filter(u => u.socketId !== socket.id);
+      socket.emit('users-in-room', {
+        users: usersInRoom,
+        host: meetings.getHost(meetingId),
+        recording: meetings.isRecording(meetingId)
+      });
+
+      // Tell existing users about the new user
+      socket.to(meetingId).emit('user-joined', {
+        socketId: socket.id,
+        username
+      });
     });
 
     // WebRTC Signaling: relay offers/answers/ICE candidates
@@ -131,7 +113,7 @@ function initSignaling(io) {
       }
     });
 
-    // Whiteboard events (frontend emits wb-draw / wb-clear)
+    // Whiteboard events
     socket.on('wb-draw', (data) => {
       if (socket.meetingId) {
         socket.to(socket.meetingId).emit('wb-draw-received', data);
@@ -156,36 +138,6 @@ function initSignaling(io) {
       }
       console.log(`[Socket] Client disconnected: ${socket.id}`);
     });
-  });
-}
-
-// Helper: direct join into meeting room
-function directJoin(socket, meetingId, username, consent, io) {
-  const result = meetings.joinMeeting(meetingId, socket.id, username, consent);
-
-  if (!result.success) {
-    socket.emit('error-joining', { message: result.message });
-    return;
-  }
-
-  socket.join(meetingId);
-  socket.meetingId = meetingId;
-  socket.username = username;
-
-  console.log(`[Socket] ${username} (${socket.id}) joined meeting: ${meetingId}`);
-
-  // Tell the new user about existing users
-  const usersInRoom = meetings.getUsersInMeeting(meetingId).filter(u => u.socketId !== socket.id);
-  socket.emit('users-in-room', {
-    users: usersInRoom,
-    host: meetings.getHost(meetingId),
-    recording: meetings.isRecording(meetingId)
-  });
-
-  // Tell existing users about the new user
-  socket.to(meetingId).emit('user-joined', {
-    socketId: socket.id,
-    username
   });
 }
 
