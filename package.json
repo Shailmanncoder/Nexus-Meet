@@ -1,0 +1,10 @@
+{
+  "name": "nexusmeet",
+  "version": "1.0.0",
+  "description": "NexusMeet Video Conferencing",
+  "scripts": {
+    "start": "node backend/server.js",
+    "build": "echo 'No build needed'",
+    "install": "cd backend && npm install"
+  }
+}
