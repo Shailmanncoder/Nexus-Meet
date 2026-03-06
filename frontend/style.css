@@ -306,3 +306,59 @@ body {
 .pinned-mode #video-grid {
   display: none !important; /* Hide standard grid when pinning via presentation area styling */
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 640px) {
+  .control-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 1rem;
+  }
+  
+  .control-btn.danger {
+    width: 50px;
+  }
+  
+  .control-btn-small {
+    width: 34px;
+    height: 34px;
+    font-size: 0.95rem;
+  }
+  
+  .name-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    bottom: 6px;
+    left: 6px;
+  }
+  
+  .video-off-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+  }
+  
+  .toast-container {
+    bottom: 80px;
+    left: 8px;
+    right: 8px;
+  }
+  
+  .toast {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .control-btn {
+    width: 38px;
+    height: 38px;
+    font-size: 0.9rem;
+  }
+  
+  .control-btn.danger {
+    width: 44px;
+  }
+}
+

@@ -15,6 +15,7 @@ function createMeeting(hostSocketId, providedId) {
     id: meetingId,
     host: hostSocketId,
     participants: [],
+    waitingRoom: [],
     recording: false,
     createdAt: Date.now()
   });
@@ -38,6 +39,7 @@ function leaveMeeting(meetingId, socketId) {
   if (!meeting) return 'not-found';
 
   meeting.participants = meeting.participants.filter(p => p.socketId !== socketId);
+  meeting.waitingRoom = meeting.waitingRoom.filter(w => w.socketId !== socketId);
 
   if (meeting.participants.length === 0) {
     activeMeetings.delete(meetingId);
@@ -66,6 +68,34 @@ function setRecording(meetingId, state) {
   if (meeting) meeting.recording = state;
 }
 
+// Waiting Room
+function addToWaitingRoom(meetingId, socketId, username) {
+  const meeting = activeMeetings.get(meetingId);
+  if (!meeting) return false;
+  meeting.waitingRoom.push({ socketId, username, requestedAt: Date.now() });
+  return true;
+}
+
+function admitFromWaitingRoom(meetingId, socketId) {
+  const meeting = activeMeetings.get(meetingId);
+  if (!meeting) return null;
+  const idx = meeting.waitingRoom.findIndex(w => w.socketId === socketId);
+  if (idx === -1) return null;
+  const user = meeting.waitingRoom.splice(idx, 1)[0];
+  return user;
+}
+
+function removeFromWaitingRoom(meetingId, socketId) {
+  const meeting = activeMeetings.get(meetingId);
+  if (!meeting) return;
+  meeting.waitingRoom = meeting.waitingRoom.filter(w => w.socketId !== socketId);
+}
+
+function isHost(meetingId, socketId) {
+  const meeting = activeMeetings.get(meetingId);
+  return meeting && meeting.host === socketId;
+}
+
 function generateMeetingId() {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let id = '';
@@ -82,5 +112,9 @@ module.exports = {
   getUsersInMeeting,
   getHost,
   isRecording,
-  setRecording
+  setRecording,
+  addToWaitingRoom,
+  admitFromWaitingRoom,
+  removeFromWaitingRoom,
+  isHost
 };

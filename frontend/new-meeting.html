@@ -31,7 +31,8 @@
     <span class="text-xl font-medium text-gray-200">NexusMeet</span>
 </div>
 
-<div class="bg-gray-800 rounded-xl p-8 max-w-sm w-full shadow-2xl glass-panel border border-gray-700">
+<!-- Host Config Panel -->
+<div id="host-config-panel" class="bg-gray-800 rounded-xl p-8 max-w-sm w-full shadow-2xl glass-panel border border-gray-700">
     <h3 class="text-xl font-semibold mb-6 text-white"><i class="fa-solid fa-gear text-brand mr-2"></i>New Meeting Strategy</h3>
     <p class="text-[14px] text-gray-400 mb-6">Select your initial recording strategy. This cannot be changed once the room is created.</p>
 
@@ -51,14 +52,73 @@
     </div>
 </div>
 
+<!-- Meeting Link Popup Modal (hidden by default) -->
+<div id="meeting-link-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden">
+    <div class="bg-gray-800 rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl border border-gray-700 animate-fade-in">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
+                <i class="fa-solid fa-check text-success text-lg"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-white">Your meeting is ready</h3>
+        </div>
+        
+        <p class="text-sm text-gray-400 mb-4">Share this link with others you want in the meeting</p>
+        
+        <div class="flex items-center gap-2 bg-surface/50 rounded-lg p-3 border border-gray-600 mb-6">
+            <i class="fa-solid fa-link text-gray-400"></i>
+            <span id="modal-meeting-link" class="text-sm text-gray-200 flex-1 truncate select-all"></span>
+            <button id="btn-copy-meeting-link" class="text-brand hover:text-blue-400 text-sm font-medium transition-colors flex items-center gap-1">
+                <i class="fa-regular fa-copy"></i> Copy
+            </button>
+        </div>
+        
+        <div class="flex gap-3 justify-end">
+            <button id="btn-close-link-modal" class="px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-600 hover:bg-surfaceLight transition-colors">Close</button>
+            <button id="btn-join-from-modal" class="bg-brand hover:bg-blue-600 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-md">Join now</button>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    let meetingId = null;
+    let recMode = 'none';
+
     document.getElementById('btn-confirm-create').addEventListener('click', () => {
-        const selectMode = document.getElementById('select-recording-mode').value;
-        const newId = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
+        recMode = document.getElementById('select-recording-mode').value;
+        meetingId = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
         
-        // Pass them to the legal screen (since they are creating the room, they are the host)
-        window.location.href = `legal.html?code=${newId}&host=true&rec=${selectMode}`;
+        // Show the meeting link popup
+        const modal = document.getElementById('meeting-link-modal');
+        const linkDisplay = document.getElementById('modal-meeting-link');
+        const meetingUrl = `${window.location.origin}?code=${meetingId}`;
+        linkDisplay.textContent = meetingUrl;
+        
+        // Hide config panel, show modal
+        document.getElementById('host-config-panel').classList.add('hidden');
+        modal.classList.remove('hidden');
+    });
+
+    // Copy link
+    document.getElementById('btn-copy-meeting-link').addEventListener('click', () => {
+        const link = document.getElementById('modal-meeting-link').textContent;
+        navigator.clipboard.writeText(link).then(() => {
+            const btn = document.getElementById('btn-copy-meeting-link');
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
+            }, 2000);
+        });
+    });
+
+    // Join now
+    document.getElementById('btn-join-from-modal').addEventListener('click', () => {
+        window.location.href = `legal.html?code=${meetingId}&host=true&rec=${recMode}`;
+    });
+
+    // Close modal (go back home)
+    document.getElementById('btn-close-link-modal').addEventListener('click', () => {
+        window.location.href = 'index.html';
     });
 });
 </script>

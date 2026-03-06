@@ -73,14 +73,15 @@
                 <i class="fa-solid fa-video text-lg"></i> New meeting
             </button>
             
-            <div class="relative group mt-2 sm:mt-0 w-full sm:w-64">
-                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <i class="fa-solid fa-keyboard text-gray-500 text-lg"></i>
+            <div class="relative group mt-2 sm:mt-0 w-full sm:w-auto flex items-center gap-2">
+                <div class="relative flex-1 sm:w-64">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i class="fa-solid fa-keyboard text-gray-500 text-lg"></i>
+                    </div>
+                    <input type="text" id="input-join-code" placeholder="Enter a code or link" class="bg-white border border-gray-400 text-gray-700 text-[15px] rounded-md focus:ring-2 focus:ring-brand focus:border-brand block w-full pl-10 pr-2 h-12 outline-none transition-all placeholder-gray-500 relative z-20">
                 </div>
-                <input type="text" id="input-join-code" placeholder="Enter a code or link" class="bg-white border border-gray-400 text-gray-700 text-[15px] rounded-md focus:ring-2 focus:ring-brand focus:border-brand block w-full pl-10 pr-2 h-12 outline-none transition-all placeholder-gray-500 relative z-20">
+                <button id="btn-join-from-home" disabled class="px-4 h-12 text-[#1a73e8] hover:bg-[#1a73e8]/10 rounded-md font-medium transition-colors disabled:opacity-50 disabled:text-gray-400 cursor-pointer relative z-20 whitespace-nowrap">Join</button>
             </div>
-            
-            <button id="btn-join-from-home" class="hidden sm:block px-4 h-12 text-[#1a73e8] hover:bg-[#1a73e8]/10 rounded-md font-medium transition-colors disabled:opacity-50 disabled:text-gray-400 cursor-pointer relative z-20">Join</button>
         </div>
 
         <button id="btn-schedule-meeting" class="mt-8 text-[15px] text-gray-600 hover:text-brand hover:bg-black/5 px-3 py-2 rounded transition-colors flex items-center gap-2">
