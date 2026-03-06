@@ -126,7 +126,7 @@ function connectAndJoin({ username, meetingId, consent, isHost, recordingMode })
 
     socket.on('user-joined', (payload) => {
         addVideoToGrid(payload.socketId, null, payload.username, false);
-        const peer = addPeer(payload.socketId, socket.id, localStream);
+        const peer = createPeer(payload.socketId, socket.id, localStream);
         peers[payload.socketId] = {
             connection: peer,
             username: payload.username
@@ -249,9 +249,8 @@ function connectAndJoin({ username, meetingId, consent, isHost, recordingMode })
 function joinRoomPayload(meetingId, username, consent) {
     socket.emit('join-room', { meetingId, username, consent });
     updateParticipantList();
-}
-
 function createPeer(userToSignal, callerId, stream) {
+    // This peer INITIATES the connection (sends Offer)
     const peer = new RTCPeerConnection(iceServers);
     
     if (stream) {
@@ -266,6 +265,7 @@ function createPeer(userToSignal, callerId, stream) {
         }
     };
 
+    // Since we are the creator, we make the offer
     peer.onnegotiationneeded = async () => {
         try {
             const offer = await peer.createOffer();
@@ -282,6 +282,7 @@ function createPeer(userToSignal, callerId, stream) {
 }
 
 function addPeer(incomingSignalId, callerId, stream) {
+    // This peer RECEIVES the connection (sends Answer)
     const peer = new RTCPeerConnection(iceServers);
     
     if (stream) {
