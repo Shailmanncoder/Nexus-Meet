@@ -28,7 +28,7 @@ initSignaling(io);
 // === SCHEDULING API ===
 const scheduledMeetings = require('./scheduled_meetings');
 const { sendReminderEmail } = require('./mailer');
-const cron = require('node-cron/dist/cjs/node-cron');
+const cron = require('node-cron');
 
 // API Endpoint to schedule a meeting
 app.post('/api/schedule', (req, res) => {
