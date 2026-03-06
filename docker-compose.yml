@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  meetlite-ultra:
+    build: .
+    container_name: meetlite-ultra-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+    # In a real production environment, you would place this behind an NGINX reverse proxy
+    # passing requests and WebSockets up via:
+    # proxy_pass http://meetlite-ultra:3000;
+    # proxy_set_header Upgrade $http_upgrade;
+    # proxy_set_header Connection "upgrade";

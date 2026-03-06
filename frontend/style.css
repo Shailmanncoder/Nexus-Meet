@@ -1,0 +1,308 @@
+/* Custom CSS complementing Tailwind */
+
+:root {
+  --surface: #202124;
+  --surface-light: #3c4043;
+  --brand: #1a73e8;
+  --danger: #d93025;
+}
+
+/* Base styles and overrides */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--surface);
+  color: #fff;
+}
+
+/* Meet-style Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 100, 0.4); 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 100, 100, 0.6); 
+}
+
+/* Glassmorphism effects */
+.glass-panel {
+  background: rgba(32, 33, 36, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #5f6368;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #80868b;
+}
+
+/* Control Buttons (Footer) */
+.control-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #e8eaed;
+  border: 1px solid transparent;
+  background-color: #3c4043;
+  cursor: pointer;
+}
+
+.control-btn.active {
+  background-color: #ea4335;
+  color: white;
+}
+
+.control-btn.off {
+  background-color: var(--danger) !important;
+  color: white;
+}
+
+.control-btn:hover:not(.off) {
+  background-color: #4a4d51;
+}
+
+.control-btn.active:hover {
+  background-color: #d93025;
+}
+
+.control-btn.danger {
+  background-color: var(--danger) !important;
+  color: white;
+  width: 60px; /* Slightly wider for the end call button */
+  border-radius: 30px;
+}
+
+.control-btn.danger:hover {
+  background-color: #b3271d !important;
+}
+
+/* Prejoin specific sizing */
+.control-btn.prejoin {
+  width: 56px;
+  height: 56px;
+}
+
+.control-btn.off {
+  background-color: var(--danger) !important;
+  color: white;
+}
+
+.control-btn:hover:not(.off) {
+  background-color: #4a4d51;
+}
+
+.control-btn-small {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  color: #9aa0a6;
+}
+
+.control-btn-small.active-panel {
+  color: var(--brand);
+  background-color: rgba(26, 115, 232, 0.1);
+}
+
+/* Tooltips */
+.tooltip-wrapper {
+  position: relative;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(100, 104, 108, 0.9);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 50;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.tooltip-wrapper:hover .tooltip {
+  opacity: 1;
+}
+
+/* Video Grid and Tiles */
+#video-grid-container {
+  container-type: size;
+}
+
+.video-tile-container {
+  position: relative;
+  background-color: #3c4043;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.video-tile-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Active speaker highlight */
+.video-tile-container.speaking {
+  box-shadow: 0 0 0 3px #8ab4f8; /* Google Meet blue highlight */
+}
+
+.mirror-mode {
+  transform: scaleX(-1);
+}
+
+.name-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background-color: rgba(0,0,0,0.6);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 80%;
+}
+
+.name-badge span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.video-off-placeholder {
+  position: absolute;
+  inset: 0;
+  background-color: #3c4043;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-off-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #5f6368;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: #e8eaed;
+}
+
+/* Dynamic Grid sizing */
+/* 
+  Calculated dynamically via JS, but base styling handled here.
+*/
+
+/* Sidebars */
+.hidden-panel {
+  display: none;
+}
+.active-panel-view {
+  display: flex;
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease forwards;
+}
+
+/* Toast logic */
+.toast-container {
+  position: fixed;
+  bottom: 90px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.toast {
+  background-color: #3c4043;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+  animation: slideUp 0.3s ease, fadeOut 0.3s ease 4.7s forwards;
+}
+
+.toast.blue { border-left: 4px solid var(--brand); }
+.toast.red { border-left: 4px solid var(--danger); }
+.toast.green { border-left: 4px solid #1e8e3e; }
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-10px); }
+}
+
+/* Pin Mode CSS handling */
+.pinned-mode #video-grid {
+  display: none !important; /* Hide standard grid when pinning via presentation area styling */
+}

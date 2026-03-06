@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusMeet</title>
+    <!-- Tailwind CSS (CDN for simplicity in pure vanilla setup) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: '#1a73e8', // Google Meet style blue
+              surface: '#202124',
+              surfaceLight: '#3c4043',
+              success: '#1e8e3e',
+              danger: '#d93025',
+              warning: '#f4b400',
+            }
+          }
+        }
+      }
+    </script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-white text-gray-800 font-sans h-screen w-screen overflow-hidden antialiased">
+
+
+
+<!-- RECORDING NOTIFICATION MODAL -->
+<div id="recording-consent-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden">
+    <div class="bg-surface rounded-xl p-8 max-w-md w-full shadow-2xl glass-panel text-center">
+        <div class="flex justify-center mb-4">
+            <div class="w-12 h-12 rounded-full bg-danger/20 flex items-center justify-center animate-pulse">
+                <i class="fa-solid fa-record-vinyl text-danger text-xl"></i>
+            </div>
+        </div>
+        <h2 class="text-xl font-semibold mb-2 text-white">Recording Started</h2>
+        <p class="text-sm text-gray-300 mb-6">The host has started recording this meeting. Do you consent to being recorded?</p>
+        <div class="flex gap-4 justify-center">
+            <button id="btn-leave-recording" class="px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-600 hover:bg-surfaceLight transition-colors">Leave Meeting</button>
+            <button id="btn-accept-recording" class="px-5 py-2.5 rounded-lg text-sm font-medium bg-brand hover:bg-blue-600 transition-colors">Accept</button>
+        </div>
+    </div>
+</div>
+
+
+
+    <!-- HOME / CREATE MEETING SCREEN -->
+<div id="view-home" class="h-full w-full flex flex-col pt-10 px-6 sm:px-12 md:flex-row bg-white relative">
+    
+    <!-- Header Logo -->
+    <div class="absolute top-4 left-6 flex items-center gap-2 z-10">
+        <i class="fa-solid fa-video text-brand text-2xl"></i>
+        <span class="text-xl font-medium text-gray-600">NexusMeet</span>
+    </div>
+
+    <!-- Left Action Area -->
+    <div class="flex-1 flex flex-col justify-center items-start max-w-xl md:pl-10 mt-16 md:mt-0 z-10 relative">
+        <h1 class="text-4xl sm:text-[2.75rem] font-normal tracking-tight text-gray-800 leading-tight mb-4">
+            Premium video meetings.<br/>Now free for everyone.
+        </h1>
+        <p class="text-[1.1rem] text-gray-500 mb-10 max-w-md">
+            We re-engineered the service we built for secure business meetings, NexusMeet, to make it free and available for all.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-start items-center w-full">
+            <button id="btn-create-meeting" class="btn-primary w-full sm:w-auto h-12 flex items-center justify-center gap-2 px-6 rounded-md bg-brand hover:bg-blue-600 font-medium text-[15px] text-white transition-all shadow-md active:bg-blue-700 relative z-20 cursor-pointer">
+                <i class="fa-solid fa-video text-lg"></i> New meeting
+            </button>
+            
+            <div class="relative group mt-2 sm:mt-0 w-full sm:w-64">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <i class="fa-solid fa-keyboard text-gray-500 text-lg"></i>
+                </div>
+                <input type="text" id="input-join-code" placeholder="Enter a code or link" class="bg-white border border-gray-400 text-gray-700 text-[15px] rounded-md focus:ring-2 focus:ring-brand focus:border-brand block w-full pl-10 pr-2 h-12 outline-none transition-all placeholder-gray-500 relative z-20">
+            </div>
+            
+            <button id="btn-join-from-home" class="hidden sm:block px-4 h-12 text-[#1a73e8] hover:bg-[#1a73e8]/10 rounded-md font-medium transition-colors disabled:opacity-50 disabled:text-gray-400 cursor-pointer relative z-20">Join</button>
+        </div>
+
+        <button id="btn-schedule-meeting" class="mt-8 text-[15px] text-gray-600 hover:text-brand hover:bg-black/5 px-3 py-2 rounded transition-colors flex items-center gap-2">
+            <i class="fa-regular fa-calendar text-lg"></i> Schedule a meeting
+        </button>
+
+        <hr class="w-full border-gray-300 my-8">
+        <p class="text-[15px] text-gray-500"><a href="about.html" class="text-brand hover:underline">Learn more</a> about NexusMeet</p>
+    </div>
+
+    <!-- Right Carousel/Illustration Area -->
+    <div class="flex-1 hidden md:flex flex-col items-center justify-center relative z-10 pointer-events-none">
+        <!-- Generic Meet-style placeholder circle -->
+        <div class="w-80 h-80 rounded-full bg-blue-50/50 flex flex-col items-center justify-center mb-8 border border-blue-100 relative">
+            <div class="absolute -top-4 -right-4 w-12 h-12 bg-green-100 rounded-full"></div>
+            <div class="absolute -bottom-6 -left-2 w-16 h-16 bg-yellow-100 rounded-full"></div>
+            <i class="fa-solid fa-people-group text-8xl text-brand/30"></i>
+            <i class="fa-regular fa-comments text-4xl text-gray-400 absolute bottom-1/4 right-1/4"></i>
+        </div>
+        <h2 class="text-2xl font-normal text-gray-800">Get a link you can share</h2>
+        <p class="text-[15px] text-gray-500 mt-3 max-w-sm text-center">Click <strong>New meeting</strong> to get a link you can send to people you want to meet with</p>
+    </div>
+</div>
+
+
+</div>
+
+
+
+<!-- Scripts -->
+<script src="/socket.io/socket.io.js"></script>
+<!-- Simple-peer could be used here via CDN, but for a "raw WebRTC" requirement we will code it manually or simulate the SFU routing -->
+<script src="app.js"></script>
+<script src="webrtc.js"></script>
+<script src="chat.js"></script>
+<script src="recording.js"></script>
+
+</body>
+</html>

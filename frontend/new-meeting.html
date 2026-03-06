@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusMeet - Host Configuration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: '#1a73e8',
+              surface: '#202124',
+              surfaceLight: '#3c4043',
+              success: '#1e8e3e',
+              danger: '#d93025',
+              warning: '#f4b400',
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-surface text-white font-sans min-h-screen flex flex-col items-center justify-center p-4 antialiased">
+
+<div class="fixed top-4 left-6 flex items-center gap-2">
+    <i class="fa-solid fa-video text-brand text-2xl"></i>
+    <span class="text-xl font-medium text-gray-200">NexusMeet</span>
+</div>
+
+<div class="bg-gray-800 rounded-xl p-8 max-w-sm w-full shadow-2xl glass-panel border border-gray-700">
+    <h3 class="text-xl font-semibold mb-6 text-white"><i class="fa-solid fa-gear text-brand mr-2"></i>New Meeting Strategy</h3>
+    <p class="text-[14px] text-gray-400 mb-6">Select your initial recording strategy. This cannot be changed once the room is created.</p>
+
+    <div class="space-y-6">
+         <div>
+             <label class="block text-[15px] font-medium text-gray-300 mb-3">Recording Mode</label>
+             <select id="select-recording-mode" class="bg-surface/50 border border-gray-600 text-white text-[15px] rounded-lg focus:ring-2 focus:ring-brand focus:border-brand block w-full p-3 outline-none">
+                 <option value="none">No Recording</option>
+                 <option value="entire">Record Entire Meeting</option>
+                 <option value="selective">Select Participant To Record</option>
+             </select>
+         </div>
+         <div class="flex justify-end pt-4 border-t border-gray-700/50 gap-3">
+             <a href="index.html" class="px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-600 hover:bg-surfaceLight transition-colors text-white">Cancel</a>
+             <button id="btn-confirm-create" class="bg-brand hover:bg-blue-600 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-md active:bg-blue-700">Start Meeting</button>
+         </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btn-confirm-create').addEventListener('click', () => {
+        const selectMode = document.getElementById('select-recording-mode').value;
+        const newId = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
+        
+        // Pass them to the legal screen (since they are creating the room, they are the host)
+        window.location.href = `legal.html?code=${newId}&host=true&rec=${selectMode}`;
+    });
+});
+</script>
+
+</body>
+</html>

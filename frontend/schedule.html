@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusMeet - Schedule Meeting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: '#1a73e8',
+              surface: '#202124',
+              surfaceLight: '#3c4043',
+              success: '#1e8e3e',
+              danger: '#d93025',
+              warning: '#f4b400',
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-surface text-white font-sans min-h-screen flex flex-col items-center justify-center p-4 antialiased">
+
+<div class="fixed top-4 left-6 flex items-center gap-2">
+    <i class="fa-solid fa-video text-brand text-2xl"></i>
+    <span class="text-xl font-medium text-gray-200">NexusMeet</span>
+</div>
+
+<div class="bg-gray-800 rounded-xl p-8 max-w-md w-full shadow-2xl glass-panel border border-gray-700">
+    <h2 class="text-2xl font-semibold mb-6 text-white"><i class="fa-regular fa-calendar-plus text-brand mr-2"></i>Schedule Meeting</h2>
+    
+    <div class="space-y-5 mb-8">
+         <div>
+             <label class="block text-sm font-medium text-gray-400 mb-2">Date</label>
+             <input type="date" id="schedule-date" class="bg-surface/50 border border-gray-600 text-white text-[15px] rounded-lg focus:ring-2 focus:ring-brand focus:border-brand block w-full p-3 outline-none transition-all">
+         </div>
+         <div>
+             <label class="block text-sm font-medium text-gray-400 mb-2">Time</label>
+             <input type="time" id="schedule-time" class="bg-surface/50 border border-gray-600 text-white text-[15px] rounded-lg focus:ring-2 focus:ring-brand focus:border-brand block w-full p-3 outline-none transition-all">
+         </div>
+         <div>
+             <label class="block text-sm font-medium text-gray-400 mb-2">Participant Emails (comma separated)</label>
+             <textarea id="schedule-emails" rows="3" class="bg-surface/50 border border-gray-600 text-white text-[15px] rounded-lg focus:ring-2 focus:ring-brand focus:border-brand block w-full p-3 outline-none custom-scrollbar transition-all" placeholder="john@example.com, jane@example.com"></textarea>
+             <p class="text-xs text-gray-400 mt-2">They will receive a reminder email 15 minutes prior.</p>
+         </div>
+    </div>
+
+    <div class="flex gap-4 justify-end">
+        <a href="index.html" class="px-6 py-2.5 rounded-lg text-[15px] font-medium border border-gray-600 hover:bg-surfaceLight transition-colors text-white">Cancel</a>
+        <button id="btn-confirm-schedule" class="px-6 py-2.5 rounded-lg text-[15px] font-medium bg-brand hover:bg-blue-600 transition-colors shadow-md active:bg-blue-700">Schedule</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('schedule-date').valueAsDate = new Date();
+
+    const toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50';
+    document.body.appendChild(toastContainer);
+
+    function showToast(message, type = 'blue') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type} bg-gray-800 text-white px-4 py-2 rounded shadow flex items-center gap-2 mb-2`;
+      let icon = 'fa-circle-info';
+      if(type==='red') icon='fa-triangle-exclamation text-danger';
+      if(type==='green') icon='fa-circle-check text-success';
+      
+      toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+      toastContainer.appendChild(toast);
+      setTimeout(() => {
+        if(toast.parentElement) toast.remove();
+      }, 5000);
+    }
+
+    const btnConfirm = document.getElementById('btn-confirm-schedule');
+    btnConfirm.addEventListener('click', async () => {
+        const date = document.getElementById('schedule-date').value;
+        const time = document.getElementById('schedule-time').value;
+        const emails = document.getElementById('schedule-emails').value;
+
+        if (!date || !time) {
+            showToast('Please select a date and time.', 'red');
+            return;
+        }
+
+        btnConfirm.disabled = true;
+        btnConfirm.textContent = 'Scheduling...';
+
+        try {
+            const loc = window.location.origin === 'null' ? 'http://localhost:3000' : window.location.origin;
+            const res = await fetch(`${loc}/api/schedule`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date, time, emails })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                showToast(`Meeting ${data.meetingId} scheduled successfully!`, 'green');
+                setTimeout(() => {
+                    window.location.href = `index.html?scheduledCode=${data.meetingId}`;
+                }, 2000);
+            } else {
+                showToast('Failed to schedule meeting.', 'red');
+                btnConfirm.disabled = false;
+                btnConfirm.textContent = 'Schedule';
+            }
+        } catch (e) {
+            showToast('Error scheduling meeting.', 'red');
+            btnConfirm.disabled = false;
+            btnConfirm.textContent = 'Schedule';
+        }
+    });
+});
+</script>
+
+</body>
+</html>

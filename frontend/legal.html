@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusMeet - Legal Agreement</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: '#1a73e8',
+              surface: '#202124',
+              surfaceLight: '#3c4043',
+              success: '#1e8e3e',
+              danger: '#d93025',
+              warning: '#f4b400',
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-[#202124] text-white font-sans min-h-screen flex flex-col items-center justify-center p-4 antialiased">
+
+<div class="fixed top-4 left-6 flex items-center gap-2">
+    <i class="fa-solid fa-video text-brand text-2xl"></i>
+    <span class="text-xl font-medium text-gray-200">NexusMeet</span>
+</div>
+
+<div class="bg-gray-800 rounded-xl p-8 max-w-lg w-full shadow-2xl glass-panel border border-gray-700">
+    <h2 class="text-2xl font-semibold mb-6 text-white"><i class="fa-solid fa-scale-balanced text-brand mr-2"></i>Legal Agreement & Consent</h2>
+    
+    <div class="h-48 overflow-y-auto mb-6 pr-2 text-sm text-gray-300 custom-scrollbar bg-black/20 p-5 rounded-lg border border-gray-700/50">
+        <h3 class="font-bold mb-2 text-white">Terms of Service</h3>
+        <p class="mb-4">By joining this meeting on NexusMeet, you agree to abide by our policies ensuring a safe and respectful environment.</p>
+        
+        <h3 class="font-bold mb-2 text-white">Privacy & Data Usage Policy</h3>
+        <p class="mb-4">We do not store your video or audio on our servers unless the host explicitly starts a recording, and even then, recordings are stored strictly locally on the host's device.</p>
+
+        <h3 class="font-bold mb-2 text-white">Recording Consent Policy & Host Rights</h3>
+        <p class="mb-4">The host has the right to record this meeting either in its entirety or selectively. You will be notified when a recording begins. Continued presence in the meeting constitutes your consent to be recorded.</p>
+    </div>
+
+    <label class="flex items-start gap-4 mb-4 cursor-pointer p-2 hover:bg-white/5 rounded transition-colors">
+        <input type="checkbox" id="tos-checkbox" class="mt-1 w-5 h-5 text-brand bg-gray-700 border-gray-600 rounded focus:ring-brand focus:ring-2">
+        <span class="text-[15px] pt-0.5 text-gray-200 leading-relaxed">I have read, understood, and agree to the Terms of Service and Privacy Policy.</span>
+    </label>
+    
+    <label class="flex items-start gap-4 mb-8 cursor-pointer p-2 hover:bg-white/5 rounded transition-colors">
+        <input type="checkbox" id="recording-checkbox" class="mt-1 w-5 h-5 text-brand bg-gray-700 border-gray-600 rounded focus:ring-brand focus:ring-2">
+        <span class="text-[15px] pt-0.5 text-gray-200 leading-relaxed">I consent to being recorded if the host enables the recording feature.</span>
+    </label>
+
+    <div class="flex gap-4 justify-end">
+        <a href="index.html" class="px-6 py-3 rounded-lg text-[15px] font-medium border border-gray-600 hover:bg-surfaceLight transition-colors text-white">Decline</a>
+        <button id="btn-accept" class="px-6 py-3 rounded-lg text-[15px] font-medium bg-brand hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md active:bg-blue-700" disabled>Accept & Continue</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const tosChecker = document.getElementById('tos-checkbox');
+    const recChecker = document.getElementById('recording-checkbox');
+    const acceptBtn = document.getElementById('btn-accept');
+    
+    // Pull the parameters we need to pass along
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const isHost = urlParams.get('host') || 'false';
+    const recMode = urlParams.get('rec') || 'none';
+
+    const validate = () => {
+        acceptBtn.disabled = !(tosChecker.checked && recChecker.checked);
+    };
+
+    tosChecker.addEventListener('change', validate);
+    recChecker.addEventListener('change', validate);
+
+    acceptBtn.onclick = () => {
+        // Forward to the pre-join lobby with the consent flag and meeting parameters
+        window.location.href = `prejoin.html?code=${code}&host=${isHost}&rec=${recMode}&consent=true`;
+    };
+});
+</script>
+
+</body>
+</html>
