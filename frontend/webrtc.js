@@ -512,6 +512,14 @@ function updateGridClasses() {
     const tiles = grid.querySelectorAll('.video-tile-container');
     const count = tiles.length;
     
+    // Toggle Mobile Picture-in-Picture Mode on the document body
+    // If there is more than 1 participant, switch local video to pip mode for mobile
+    if (count > 1) {
+        document.body.classList.add('mobile-pip-mode');
+    } else {
+        document.body.classList.remove('mobile-pip-mode');
+    }
+    
     let wClass = '';
     
     if (count === 1) {
@@ -529,7 +537,12 @@ function updateGridClasses() {
     }
 
     tiles.forEach(tile => {
-        tile.className = `video-tile-container relative animate-fade-in ${wClass} mb-3`;
+        // Special case for PiP local video: don't override its absolute classes
+        if (count > 1 && tile.id === 'video-container-local') {
+            tile.className = 'video-tile-container mobile-local-pip transition-all animate-fade-in relative';
+        } else {
+            tile.className = `video-tile-container relative animate-fade-in ${wClass} mb-3`;
+        }
     });
 }
 
