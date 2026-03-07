@@ -34,7 +34,7 @@ function sendReminderEmail(emailsStr, meetingId, meetingTime) {
           <p style="color: #333; font-size: 16px;">Your meeting starts in <strong>15 minutes</strong>!</p>
           <p style="color: #666;">Scheduled for: <strong>${timeStr}</strong></p>
           <div style="margin: 24px 0; text-align: center;">
-            <a href="${process.env.APP_URL || 'http://localhost:3000'}?code=${meetingId}" 
+            <a href="${process.env.APP_URL || 'https://nexusmeet.live'}?code=${meetingId}" 
                style="background: #1a73e8; color: white; padding: 12px 32px; border-radius: 24px; text-decoration: none; font-size: 16px; font-weight: 500;">
               Join Meeting
             </a>

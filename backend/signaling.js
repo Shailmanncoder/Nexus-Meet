@@ -126,6 +126,12 @@ function initSignaling(io) {
       }
     });
 
+    socket.on('whiteboard-toggle', (data) => {
+      if (socket.meetingId) {
+        socket.to(socket.meetingId).emit('whiteboard-toggled', data);
+      }
+    });
+
     // Handle disconnect
     socket.on('disconnect', () => {
       if (socket.meetingId) {

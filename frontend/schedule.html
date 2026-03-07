@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnConfirm.textContent = 'Scheduling...';
 
         try {
-            const loc = window.location.origin === 'null' ? 'http://localhost:3000' : window.location.origin;
+            const loc = window.location.origin === 'null' ? 'https://nexusmeet.live' : window.location.origin;
             const res = await fetch(`${loc}/api/schedule`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

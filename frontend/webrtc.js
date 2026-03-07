@@ -50,6 +50,25 @@ window.addEventListener('toggle-cam', (e) => {
         if(socket && AppState.meetingId) {
             socket.emit('toggle-media', { meetingId: AppState.meetingId, type: 'video', state: e.detail.state });
         }
+        
+        const tile = document.getElementById('video-container-local');
+        if(tile) {
+            let offUI = tile.querySelector('.video-off-placeholder');
+            if(!e.detail.state) {
+                if(!offUI) {
+                    offUI = document.createElement('div');
+                    offUI.className = 'video-off-placeholder absolute inset-0 bg-[#202124] flex items-center justify-center';
+                    const initial = AppState.username ? AppState.username.charAt(0).toUpperCase() : '?';
+                    offUI.innerHTML = `
+                    <div class="video-off-avatar w-[100px] h-[100px] rounded-full bg-brand flex items-center justify-center text-4xl font-semibold text-white shadow-lg">
+                       ${initial}
+                    </div>`;
+                    tile.appendChild(offUI);
+                }
+            } else {
+                if(offUI) offUI.remove();
+            }
+        }
     }
 });
 
@@ -215,9 +234,11 @@ function connectAndJoin({ username, meetingId, consent, isHost, recordingMode })
                     if(!offUI) {
                         offUI = document.createElement('div');
                         offUI.className = 'video-off-placeholder absolute inset-0 bg-[#202124] flex items-center justify-center';
+                        const pName = peers[payload.socketId] ? peers[payload.socketId].username : '?';
+                        const initial = pName.charAt(0).toUpperCase();
                         offUI.innerHTML = `
-                        <div class="video-off-avatar w-[100px] h-[100px] rounded-full bg-[#3c4043] flex items-center justify-center text-gray-300">
-                           <svg focusable="false" viewBox="0 0 32 32" class="w-14 h-14 fill-current"><path d="M16 14.5A6.5 6.5 0 109.5 8a6.5 6.5 0 006.5 6.5zM16 18c-4.34 0-13 2.17-13 6.5V28h26v-3.5c0-4.33-8.66-6.5-13-6.5z"></path></svg>
+                        <div class="video-off-avatar w-[100px] h-[100px] rounded-full bg-brand flex items-center justify-center text-4xl font-semibold text-white shadow-lg">
+                           ${initial}
                         </div>`;
                         tile.appendChild(offUI);
                     }
@@ -244,11 +265,26 @@ function connectAndJoin({ username, meetingId, consent, isHost, recordingMode })
     socket.on('wb-clear-received', () => {
         if(window.handleNetworkClear) window.handleNetworkClear();
     });
+
+    socket.on('whiteboard-toggled', data => {
+        const whiteboardContainer = document.getElementById('whiteboard-container');
+        if (whiteboardContainer) {
+            if (data.state) {
+                whiteboardContainer.classList.remove('hidden');
+                whiteboardContainer.classList.add('flex');
+            } else {
+                whiteboardContainer.classList.remove('flex');
+                whiteboardContainer.classList.add('hidden');
+            }
+        }
+    });
 }
 
 function joinRoomPayload(meetingId, username, consent) {
     socket.emit('join-room', { meetingId, username, consent });
     updateParticipantList();
+}
+
 function createPeer(userToSignal, callerId, stream) {
     // This peer INITIATES the connection (sends Offer)
     const peer = new RTCPeerConnection(iceServers);
@@ -476,9 +512,10 @@ function addVideoToGrid(id, stream, name, isLocal) {
     if(!stream || (isLocal && !AppState.camEnabled)) {
          const offUI = document.createElement('div');
          offUI.className = 'video-off-placeholder absolute inset-0 bg-[#202124] flex items-center justify-center';
+         const initial = name ? name.charAt(0).toUpperCase() : '?';
          offUI.innerHTML = `
-            <div class="video-off-avatar w-[100px] h-[100px] rounded-full bg-[#3c4043] flex items-center justify-center text-gray-300">
-               <svg focusable="false" viewBox="0 0 32 32" class="w-14 h-14 fill-current"><path d="M16 14.5A6.5 6.5 0 109.5 8a6.5 6.5 0 006.5 6.5zM16 18c-4.34 0-13 2.17-13 6.5V28h26v-3.5c0-4.33-8.66-6.5-13-6.5z"></path></svg>
+            <div class="video-off-avatar w-[100px] h-[100px] rounded-full bg-brand flex items-center justify-center text-4xl font-semibold text-white shadow-lg">
+               ${initial}
             </div>`;
          wrapper.appendChild(offUI);
     }

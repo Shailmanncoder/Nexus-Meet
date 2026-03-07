@@ -383,6 +383,8 @@ function bindMeetingControls() {
            openDropdowns.forEach(dd => dd.classList.add('hidden'));
 
            if(window.initWhiteboard) window.initWhiteboard();
+           const socket = window.getSocket ? window.getSocket() : null;
+           if(socket) socket.emit('whiteboard-toggle', { state: true });
       });
   });
 
@@ -392,6 +394,8 @@ function bindMeetingControls() {
            whiteboardContainer.classList.remove('flex');
            whiteboardContainer.classList.add('hidden');
          }
+         const socket = window.getSocket ? window.getSocket() : null;
+         if(socket) socket.emit('whiteboard-toggle', { state: false });
     });
   }
 
