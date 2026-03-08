@@ -48,6 +48,13 @@
              <textarea id="schedule-emails" rows="3" class="bg-surface/50 border border-gray-600 text-white text-[15px] rounded-lg focus:ring-2 focus:ring-brand focus:border-brand block w-full p-3 outline-none custom-scrollbar transition-all" placeholder="john@example.com, jane@example.com"></textarea>
              <p class="text-xs text-gray-400 mt-2">They will receive a reminder email 15 minutes prior.</p>
          </div>
+         <div>
+             <label class="block text-sm font-medium text-gray-400 mb-2">Security</label>
+             <select id="schedule-security" class="bg-surface/50 border border-gray-600 text-white text-[15px] rounded-lg focus:ring-2 focus:ring-brand focus:border-brand block w-full p-3 outline-none transition-all appearance-none cursor-pointer">
+                 <option value="open">Open Call (Anyone with link joins instantly)</option>
+                 <option value="waiting_room">Allowed to Join (Participants knock)</option>
+             </select>
+         </div>
     </div>
 
     <div class="flex gap-4 justify-end">
@@ -83,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const date = document.getElementById('schedule-date').value;
         const time = document.getElementById('schedule-time').value;
         const emails = document.getElementById('schedule-emails').value;
+        const security = document.getElementById('schedule-security').value;
 
         if (!date || !time) {
             showToast('Please select a date and time.', 'red');
@@ -97,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`${loc}/api/schedule`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date, time, emails })
+                body: JSON.stringify({ date, time, emails, security })
             });
             const data = await res.json();
             

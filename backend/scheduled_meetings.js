@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 // In-memory store for scheduled meetings
 const scheduled = [];
 
-function scheduleMeeting(datetimeStr, emailsStr) {
+function scheduleMeeting(datetimeStr, emailsStr, securityStr) {
   const meetingTime = new Date(datetimeStr);
   if (isNaN(meetingTime.getTime())) {
     throw new Error('Invalid date/time format');
@@ -25,6 +25,7 @@ function scheduleMeeting(datetimeStr, emailsStr) {
     meetingId,
     time: meetingTime,
     emails: emailsStr,
+    security: securityStr || 'open',
     reminderSent: false,
     createdAt: Date.now()
   });
@@ -53,7 +54,8 @@ function getMeetingRules(meetingId) {
   return {
       scheduledTime: mtg.time,
       notBefore,
-      notAfter
+      notAfter,
+      security: mtg.security
   };
 }
 

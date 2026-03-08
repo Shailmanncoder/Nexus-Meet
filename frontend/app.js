@@ -93,6 +93,43 @@ function showToast(message, type = 'blue') {
   }, 5000);
 }
 
+function showHostActionToast(username, socketId) {
+  const toastId = 'toast-' + socketId;
+  if(document.getElementById(toastId)) return; // Prevent duplicates
+  
+  const toast = document.createElement('div');
+  toast.id = toastId;
+  toast.className = `toast bg-[#3c4043] text-white px-4 py-3 rounded-xl shadow-2xl flex flex-col gap-3 mb-3 pointer-events-auto border border-gray-600`;
+  toast.style.width = '300px';
+  
+  toast.innerHTML = `
+      <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+             <i class="fa-solid fa-user-clock text-gray-300"></i>
+             <span class="font-medium text-[15px] truncate max-w-[200px]">${username}</span> wants to join
+          </div>
+          <button class="text-gray-400 hover:text-white" onclick="document.getElementById('${toastId}').remove()">
+             <i class="fa-solid fa-xmark"></i>
+          </button>
+      </div>
+      <div class="flex gap-3 mt-1">
+          <button id="btn-deny-${socketId}" class="flex-1 px-3 py-1.5 rounded-md text-brand font-medium hover:bg-white/5 transition-colors text-sm">Deny entry</button>
+          <button id="btn-admit-${socketId}" class="flex-1 px-3 py-1.5 rounded-md bg-brand text-white font-medium hover:bg-blue-600 transition-colors text-sm">Admit</button>
+      </div>
+  `;
+  AppState.toastContainer.appendChild(toast);
+  
+  document.getElementById(`btn-admit-${socketId}`).onclick = () => {
+      window.dispatchEvent(new CustomEvent('host-admit-user', { detail: { targetSocketId: socketId } }));
+      toast.remove();
+  };
+  
+  document.getElementById(`btn-deny-${socketId}`).onclick = () => {
+      window.dispatchEvent(new CustomEvent('host-deny-user', { detail: { targetSocketId: socketId } }));
+      toast.remove();
+  };
+}
+
 // -----------------------------------------------------
 // HOME SCREEN LOGIC
 // -----------------------------------------------------
@@ -257,14 +294,50 @@ function initPrejoin() {
   window.dispatchEvent(new CustomEvent('init-local-media'));
   
   const idDisplay = document.getElementById('prejoin-meeting-id');
+  const countDisplay = document.getElementById('prejoin-participant-count');
+  const btnJoin = document.getElementById('btn-join-meeting');
+  
   if (codeParam) {
     idDisplay.textContent = `Meeting ID: ${codeParam}`;
+    countDisplay.textContent = 'Checking meeting info...';
+    
+    // Fetch meeting info
+    fetch(`/api/meeting-info/${codeParam}`)
+      .then(res => res.json())
+      .then(data => {
+          if(!data.valid) {
+              // Block joining
+              idDisplay.textContent = data.error;
+              countDisplay.textContent = data.message;
+              countDisplay.classList.add('text-danger', 'font-medium');
+              if(btnJoin) btnJoin.disabled = true;
+              
+              // Optionally hide video preview
+              const camPreview = document.querySelector('.aspect-video');
+              if (camPreview) camPreview.classList.add('opacity-50', 'grayscale');
+          } else {
+              // Update participant count/names
+              if (data.participantCount === 0) {
+                  countDisplay.textContent = 'No one else is here';
+              } else if (data.participantCount === 1) {
+                  countDisplay.textContent = `${data.participants[0]} is in the call`;
+              } else if (data.participantCount === 2) {
+                  countDisplay.textContent = `${data.participants[0]} and ${data.participants[1]} are here`;
+              } else {
+                  countDisplay.textContent = `${data.participants[0]} and ${data.participantCount - 1} others are here`;
+              }
+          }
+      })
+      .catch(err => {
+          console.error("Failed to fetch meeting info", err);
+          countDisplay.textContent = 'Ready to join';
+      });
+      
   } else {
     idDisplay.textContent = `Meeting ID: Generating...`;
   }
 
   // Bind Buttons
-  const btnJoin = document.getElementById('btn-join-meeting');
   const inputName = document.getElementById('input-username');
   
   // Pre-fill username if available
@@ -464,6 +537,11 @@ function initMeeting() {
 
   // Request camera & mic access
   window.dispatchEvent(new CustomEvent('init-local-media'));
+
+  // Host UI Listeners for Waiting Room
+  window.addEventListener('host-user-waiting', (e) => {
+      showHostActionToast(e.detail.username, e.detail.socketId);
+  });
 
   bindMeetingControls();
 }
@@ -670,11 +748,33 @@ function bindMeetingControls() {
   const btnRaiseHandSheet = document.getElementById('btn-raise-hand-sheet');
   const btnCaptionsSheet = document.getElementById('btn-captions-sheet');
   const btnSpeakerSheet = document.getElementById('btn-speaker-sheet');
+  const btnRecordSheet = document.getElementById('btn-record-meeting-sheet');
 
   if(btnRaiseHand) btnRaiseHand.onclick = () => notImplToast("Raise Hand");
   if(btnRaiseHandSheet) btnRaiseHandSheet.onclick = () => notImplToast("Raise Hand");
-  if(btnCaptionsSheet) btnCaptionsSheet.onclick = () => notImplToast("Live Captions");
   if(btnSpeakerSheet) btnSpeakerSheet.onclick = () => notImplToast("Speaker Output");
+  
+  if(btnRecordSheet) {
+      btnRecordSheet.onclick = () => {
+          window.dispatchEvent(new Event('start-full-meeting-recording'));
+          if(moreSheet) {
+              const sheetContent = moreSheet.querySelector('.sheet-content');
+              if (sheetContent) sheetContent.classList.add('translate-y-full');
+              setTimeout(() => moreSheet.classList.add('hidden'), 300);
+          }
+      };
+  }
+
+  if(btnCaptionsSheet) {
+      btnCaptionsSheet.onclick = () => {
+          window.dispatchEvent(new Event('toggle-captions'));
+          if(moreSheet) {
+              const sheetContent = moreSheet.querySelector('.sheet-content');
+              if (sheetContent) sheetContent.classList.add('translate-y-full');
+              setTimeout(() => moreSheet.classList.add('hidden'), 300);
+          }
+      };
+  }
 
   // Top header elements (meeting code, time, avatar)
   const headerCodeDisplay = document.getElementById('meeting-code-display');

@@ -117,7 +117,45 @@ function connectAndJoin({ username, meetingId, consent, isHost, recordingMode })
 
     socket.on('error-joining', (data) => {
         showToast(data.message, "red");
-        setTimeout(() => window.location.reload(), 2000);
+        // Only reload if it's a fatal denial, not a waiting room hold
+        if(data.message.includes('denied')) {
+            setTimeout(() => window.location.href = 'index.html', 3000);
+        } else {
+            setTimeout(() => window.location.reload(), 2000);
+        }
+    });
+
+    socket.on('waiting-for-approval', (data) => {
+        // Show a full-screen overlay over the meeting grid
+        let overlay = document.getElementById('waiting-room-overlay');
+        if(!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'waiting-room-overlay';
+            overlay.className = 'fixed inset-0 z-50 bg-[#202124] flex flex-col items-center justify-center text-white p-6 text-center';
+            overlay.innerHTML = `
+                <div class="mb-6"><i class="fa-solid fa-hourglass-half text-6xl text-brand animate-pulse"></i></div>
+                <h1 class="text-3xl font-medium mb-2">Asking to join...</h1>
+                <p class="text-gray-400 text-lg">You'll join the call when someone lets you in.</p>
+            `;
+            document.body.appendChild(overlay);
+        }
+    });
+
+    socket.on('approved-to-join', (data) => {
+        // Remove overlay and rejoin
+        const overlay = document.getElementById('waiting-room-overlay');
+        if(overlay) overlay.remove();
+        
+        socket.emit('join-room', {
+            meetingId: data.meetingId,
+            username: AppState.username,
+            consent: AppState.consentGiven
+        });
+    });
+
+    socket.on('user-waiting', (data) => {
+        // Trigger a custom event for app.js to show the Host action toast
+        window.dispatchEvent(new CustomEvent('host-user-waiting', { detail: data }));
     });
 
     socket.on('users-in-room', (data) => {
@@ -742,6 +780,25 @@ window.addEventListener('show-context-menu', (e) => {
             btnRemove.classList.add('hidden');
         }
 
+        // Setup Record specifically
+        const btnRecord = document.getElementById('ctx-record');
+        if (btnRecord) {
+            btnRecord.classList.remove('hidden');
+            if (activeRecorders && activeRecorders[id]) {
+                btnRecord.innerHTML = '<i class="fa-solid fa-stop w-5 text-center text-white"></i> Stop Recording';
+                btnRecord.classList.add('bg-gray-700', 'text-white');
+                btnRecord.classList.remove('hover:bg-danger/20', 'text-danger');
+            } else {
+                btnRecord.innerHTML = '<i class="fa-solid fa-record-vinyl w-5 text-center animate-pulse"></i> Record specifically';
+                btnRecord.classList.add('hover:bg-danger/20', 'text-danger');
+                btnRecord.classList.remove('bg-gray-700', 'text-white');
+            }
+            btnRecord.onclick = () => {
+                toggleRecordingForUser(id);
+                menu.classList.add('hidden');
+            };
+        }
+
         // Setup Mute/Remove
         document.getElementById('ctx-mute').onclick = () => {
             socket.emit('remote-mute', { targetSocketId: id });
@@ -773,4 +830,193 @@ document.addEventListener('click', () => {
 window.addEventListener('host-info', (e) => {
     window.hostId = e.detail.hostId;
     updateParticipantList();
+});
+
+// Dispatch socket emissions for host waiting room actions
+window.addEventListener('host-admit-user', (e) => {
+    if(socket) socket.emit('admit-user', { targetSocketId: e.detail.targetSocketId });
+});
+window.addEventListener('host-deny-user', (e) => {
+    if(socket) socket.emit('deny-user', { targetSocketId: e.detail.targetSocketId });
+});
+
+// Recording logic dictionary
+const activeRecorders = {};
+
+function toggleRecordingForUser(socketId) {
+    if (activeRecorders[socketId]) {
+        // Stop it
+        activeRecorders[socketId].stop();
+        delete activeRecorders[socketId];
+        showToast(`Stopped recording user`, "green");
+    } else {
+        // Start it
+        let streamToRecord = null;
+        if (socketId === 'local') {
+            streamToRecord = localStream;
+        } else {
+            const videoEl = document.getElementById(`video-${socketId}`);
+            if (videoEl && videoEl.srcObject) {
+                streamToRecord = videoEl.srcObject;
+            }
+        }
+
+        if (streamToRecord) {
+            startRecordingStream(streamToRecord, socketId);
+        } else {
+            showToast('No active stream to record for this user', 'red');
+        }
+    }
+}
+
+function startRecordingStream(stream, idLabel) {
+    try {
+        const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        const chunks = [];
+        
+        recorder.ondataavailable = (e) => {
+            if (e.data.size > 0) chunks.push(e.data);
+        };
+        
+        recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `nexusmeet_recording_${idLabel}_${Date.now()}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        };
+        
+        recorder.start();
+        activeRecorders[idLabel] = recorder;
+        showToast(`Started recording user`, "blue");
+    } catch (e) {
+        console.error("Recording error:", e);
+        showToast("Error starting recording. Browser may not support it.", "red");
+    }
+}
+
+// Full meeting recording (prompts display media)
+window.addEventListener('start-full-meeting-recording', async () => {
+    try {
+        if (activeRecorders['full-meeting']) {
+            activeRecorders['full-meeting'].stop();
+            delete activeRecorders['full-meeting'];
+            showToast("Stopped full meeting recording", "green");
+            return;
+        }
+
+        // Ask for screen to record
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+        
+        const recorder = new MediaRecorder(displayStream, { mimeType: 'video/webm' });
+        const chunks = [];
+        
+        recorder.ondataavailable = (e) => {
+            if (e.data.size > 0) chunks.push(e.data);
+        };
+        
+        recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `nexusmeet_full_recording_${Date.now()}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+            delete activeRecorders['full-meeting'];
+        };
+
+        // If user stops sharing via browser UI, stop recording
+        displayStream.getVideoTracks()[0].onended = () => {
+            if(recorder.state !== 'inactive') recorder.stop();
+        };
+        
+        recorder.start();
+        activeRecorders['full-meeting'] = recorder;
+        showToast("Started recording entire meeting", "blue");
+        
+    } catch (err) {
+        console.error("Full meeting recording failed:", err);
+        showToast("Screen share required to record entire meeting.", "red");
+    }
+});
+
+// Captions logic
+let captionsActive = false;
+let speechRecognition = null;
+
+window.addEventListener('toggle-captions', () => {
+    if (!('webkitSpeechRecognition' in window)) {
+        showToast('Live Captions are not supported in your browser.', 'red');
+        return;
+    }
+    
+    if (captionsActive) {
+        captionsActive = false;
+        if (speechRecognition) speechRecognition.stop();
+        showToast('Captions disabled', 'blue');
+        const cc = document.getElementById('captions-container');
+        if (cc) cc.remove();
+        document.getElementById('btn-captions-sheet')?.classList.remove('text-brand');
+    } else {
+        captionsActive = true;
+        document.getElementById('btn-captions-sheet')?.classList.add('text-brand');
+        showToast('Captions enabled. Speak into your mic!', 'green');
+        
+        let cc = document.getElementById('captions-container');
+        if (!cc) {
+            cc = document.createElement('div');
+            cc.id = 'captions-container';
+            cc.className = 'fixed bottom-32 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-lg max-w-lg text-center z-[100] transition-opacity duration-300 text-lg shadow-xl border border-gray-700 pointer-events-none hidden';
+            document.body.appendChild(cc);
+        }
+
+        speechRecognition = new webkitSpeechRecognition();
+        speechRecognition.continuous = true;
+        speechRecognition.interimResults = true;
+        speechRecognition.lang = 'en-US';
+
+        speechRecognition.onresult = (event) => {
+            let interimTranscript = '';
+            let finalTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+            
+            const displayTxt = finalTranscript || interimTranscript;
+            if (displayTxt.trim().length > 0) {
+                cc.classList.remove('hidden');
+                cc.innerHTML = `<span class="opacity-75 text-brand hidden md:inline mr-2">${AppState.username}:</span> ${displayTxt}`;
+                
+                // Auto hide after 3 seconds of no speaking
+                clearTimeout(window.captionsTimeout);
+                window.captionsTimeout = setTimeout(() => {
+                    cc.classList.add('hidden');
+                }, 3000);
+            }
+        };
+
+        speechRecognition.onerror = (e) => {
+            console.error('Speech recognition error:', e);
+            if(e.error === 'not-allowed') showToast('Microphone access for captions denied.', 'red');
+        };
+
+        speechRecognition.start();
+    }
 });

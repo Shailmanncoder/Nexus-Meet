@@ -33,17 +33,55 @@ const cron = require('node-cron');
 // API Endpoint to schedule a meeting
 app.post('/api/schedule', (req, res) => {
   try {
-    const { date, time, emails } = req.body;
+    const { date, time, emails, security } = req.body;
     if (!date || !time) return res.status(400).json({ error: 'Date and time required' });
 
     // Combine into parseable date string
     const datetimeStr = `${date}T${time}`;
-    const meetingId = scheduledMeetings.scheduleMeeting(datetimeStr, emails || '');
+    const meetingId = scheduledMeetings.scheduleMeeting(datetimeStr, emails || '', security || 'open');
 
     res.json({ success: true, meetingId });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// API Endpoint to check meeting info (validation and presence)
+const meetings = require('./meeting');
+
+app.get('/api/meeting-info/:meetingId', (req, res) => {
+  const meetingId = req.params.meetingId;
+  
+  // Check strict scheduling constraints first
+  const scheduleRules = scheduledMeetings.getMeetingRules(meetingId);
+  if (scheduleRules) {
+      const now = new Date();
+      if (now < scheduleRules.notBefore) {
+          const diffMins = Math.ceil((scheduleRules.notBefore - now) / 60000);
+          return res.status(403).json({ 
+              error: 'Meeting has not started yet', 
+              message: `Please check back in ${diffMins} minutes.`,
+              valid: false
+          });
+      }
+      if (now > scheduleRules.notAfter) {
+          return res.status(403).json({ 
+              error: 'Meeting has ended', 
+              message: `This meeting session has already expired.`,
+              valid: false
+          });
+      }
+  }
+
+  // Fetch active participants in the room
+  const participants = meetings.getUsersInMeeting(meetingId) || [];
+  const participantNames = participants.map(p => p.username);
+  
+  res.json({
+      valid: true,
+      participantCount: participantNames.length,
+      participants: participantNames
+  });
 });
 
 // CRON JOB: Run every minute to check for meetings 15 minutes away

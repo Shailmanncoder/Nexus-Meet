@@ -22,6 +22,21 @@ function initSignaling(io) {
       
       const result = meetings.joinMeeting(meetingId, socket.id, username, consent);
       if (!result.success) {
+        if (result.requireApproval) {
+          socket.emit('waiting-for-approval', { message: result.message });
+          
+          // Notify Host and Co-Hosts
+          const hostId = meetings.getHost(meetingId);
+          if (hostId) io.to(hostId).emit('user-waiting', { socketId: socket.id, username });
+          
+          const activeMeeting = meetings.activeMeetings ? meetings.activeMeetings.get(meetingId) : null;
+          if (activeMeeting && activeMeeting.coHosts) {
+              activeMeeting.coHosts.forEach(coHostId => {
+                  io.to(coHostId).emit('user-waiting', { socketId: socket.id, username });
+              });
+          }
+          return;
+        }
         socket.emit('error-joining', { message: result.message });
         return;
       }
@@ -47,6 +62,26 @@ function initSignaling(io) {
         socketId: socket.id,
         username
       });
+    });
+
+    // === Waiting Room Host Actions ===
+    socket.on('admit-user', (data) => {
+      const { targetSocketId } = data;
+      if (socket.meetingId && (meetings.isHost(socket.meetingId, socket.id) || meetings.isCoHost(socket.meetingId, socket.id))) {
+          const user = meetings.admitFromWaitingRoom(socket.meetingId, targetSocketId);
+          if (user) {
+              // Tell the waiting user they are approved
+              io.to(targetSocketId).emit('approved-to-join', { meetingId: socket.meetingId, username: user.username });
+          }
+      }
+    });
+
+    socket.on('deny-user', (data) => {
+      const { targetSocketId } = data;
+      if (socket.meetingId && (meetings.isHost(socket.meetingId, socket.id) || meetings.isCoHost(socket.meetingId, socket.id))) {
+          meetings.rejectFromWaitingRoom(socket.meetingId, targetSocketId);
+          io.to(targetSocketId).emit('error-joining', { message: 'The host denied your entry.' });
+      }
     });
 
     // WebRTC Signaling: relay offers/answers/ICE candidates

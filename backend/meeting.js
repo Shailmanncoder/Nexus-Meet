@@ -46,7 +46,27 @@ function joinMeeting(meetingId, socketId, username, consent) {
   }
 
   const mtg = activeMeetings.get(meetingId);
-  mtg.participants.push({ socketId, username, consent, joinedAt: Date.now() });
+  
+  // Set meeting security if derived from schedule
+  if (scheduleRules && scheduleRules.security) {
+      mtg.security = scheduleRules.security;
+  } else if (!mtg.security) {
+      mtg.security = 'open'; // default
+  }
+
+  // Check if they were already admitted (bypass waiting room)
+  const isAlreadyAdmitted = mtg.participants.some(p => p.socketId === socketId);
+  const isUserHost = mtg.host === socketId;
+  const isUserCoHost = mtg.coHosts && mtg.coHosts.includes(socketId);
+  
+  if (!isAlreadyAdmitted && !isUserHost && !isUserCoHost && mtg.security === 'waiting_room') {
+      mtg.waitingRoom.push({ socketId, username, requestedAt: Date.now() });
+      return { success: false, requireApproval: true, message: 'Please wait for the host to let you in.' };
+  }
+
+  if (!isAlreadyAdmitted) {
+      mtg.participants.push({ socketId, username, consent, joinedAt: Date.now() });
+  }
   return { success: true };
 }
 
@@ -98,7 +118,18 @@ function admitFromWaitingRoom(meetingId, socketId) {
   const idx = meeting.waitingRoom.findIndex(w => w.socketId === socketId);
   if (idx === -1) return null;
   const user = meeting.waitingRoom.splice(idx, 1)[0];
+  
+  // Add directly to participants to bypass the security check
+  meeting.participants.push({ socketId: user.socketId, username: user.username, consent: true, joinedAt: Date.now() });
   return user;
+}
+
+function rejectFromWaitingRoom(meetingId, socketId) {
+  const meeting = activeMeetings.get(meetingId);
+  if (!meeting) return null;
+  const idx = meeting.waitingRoom.findIndex(w => w.socketId === socketId);
+  if (idx === -1) return null;
+  return meeting.waitingRoom.splice(idx, 1)[0];
 }
 
 function removeFromWaitingRoom(meetingId, socketId) {
@@ -148,6 +179,12 @@ module.exports = {
   leaveMeeting,
   getUsersInMeeting,
   getHost,
+  isRecording,
+  setRecording,
+  addToWaitingRoom,
+  admitFromWaitingRoom,
+  rejectFromWaitingRoom,
+  removeFromWaitingRoom,
   isRecording,
   setRecording,
   addToWaitingRoom,
