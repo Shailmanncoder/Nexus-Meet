@@ -201,6 +201,19 @@ function initSignaling(io) {
       }
     });
 
+    // Reactions and Hand raising
+    socket.on('send-reaction', (data) => {
+        if(socket.meetingId) {
+            socket.to(socket.meetingId).emit('reaction-received', { socketId: socket.id, emoji: data.emoji });
+        }
+    });
+
+    socket.on('raise-hand-toggle', (data) => {
+        if(socket.meetingId) {
+            socket.to(socket.meetingId).emit('hand-raised-received', { socketId: socket.id, state: data.state });
+        }
+    });
+
     // Handle disconnect
     socket.on('disconnect', () => {
       if (socket.meetingId) {

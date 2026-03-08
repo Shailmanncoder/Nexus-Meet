@@ -692,41 +692,41 @@ body {
 
 /* Mobile Picture-in-Picture (PIP) for Local Video and Full Screen Remote */
 .mobile-pip-mode #video-grid {
-  /* No gaps, no flex-wrap logic for the grid itself, let the tiles dictate the layout */
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.mobile-pip-mode .video-tile-container {
-  /* By default, in PiP mode (1-on-1 mostly), the first non-local tile should fill the screen */
-  position: absolute !important;
-  inset: 0 !important;
+  /* Flex vertical stacking for multiple remote tiles */
+  display: flex !important;
+  flex-direction: column !important;
   width: 100vw !important;
   height: 100dvh !important;
-  aspect-ratio: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.mobile-pip-mode .video-tile-container:not(#video-container-local) {
+  /* Let inline JS handle the specific height distribution */
+  position: relative !important;
   border-radius: 0 !important; /* Full edge-to-edge on mobile */
   margin: 0 !important;
   z-index: 10;
+  flex-shrink: 1 !important;
 }
 
-.mobile-pip-mode .video-tile-container video {
-  object-fit: cover !important; /* Force fill the screen */
+.mobile-pip-mode .video-tile-container:not(#video-container-local) video {
+  object-fit: cover !important; /* Force fill the screen segment */
 }
 
+/* Local Video as Draggable PiP */
 .mobile-pip-mode #video-container-local {
   position: absolute !important;
-  top: auto !important;
-  bottom: 120px !important; /* Above the control bar */
-  right: 16px !important;
+  /* top/left can be set by JS drag, defaults to bottom right otherwise */
   width: 110px !important;
   height: 160px !important;
   z-index: 40 !important;
   box-shadow: 0 8px 24px rgba(0,0,0,0.6);
   border: 2px solid rgba(255,255,255,0.1) !important;
   border-radius: 12px !important;
-  inset: auto 16px 120px auto !important; /* Explicitly wipe the generic inset: 0 */
   margin: 0 !important;
+  touch-action: none !important; /* Vital for touch drag */
 }
 
 .mobile-pip-mode #video-container-local video {

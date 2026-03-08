@@ -746,12 +746,48 @@ function bindMeetingControls() {
 
   const btnRaiseHand = document.getElementById('btn-raise-hand');
   const btnRaiseHandSheet = document.getElementById('btn-raise-hand-sheet');
-  const btnCaptionsSheet = document.getElementById('btn-captions-sheet');
   const btnSpeakerSheet = document.getElementById('btn-speaker-sheet');
   const btnRecordSheet = document.getElementById('btn-record-meeting-sheet');
 
-  if(btnRaiseHand) btnRaiseHand.onclick = () => notImplToast("Raise Hand");
-  if(btnRaiseHandSheet) btnRaiseHandSheet.onclick = () => notImplToast("Raise Hand");
+  const onRaiseHand = () => {
+       window.dispatchEvent(new Event('raise-hand'));
+       if(moreSheet) {
+           const sheetContent = moreSheet.querySelector('.sheet-content');
+           if (sheetContent) sheetContent.classList.add('translate-y-full');
+           setTimeout(() => moreSheet.classList.add('hidden'), 300);
+       }
+  };
+
+  if(btnRaiseHand) btnRaiseHand.onclick = onRaiseHand;
+  if(btnRaiseHandSheet) btnRaiseHandSheet.onclick = onRaiseHand;
+  
+  // Emoji Menu Logic
+  const btnEmojiMenu = document.getElementById('btn-emoji-menu');
+  const emojiPanel = document.getElementById('emoji-panel');
+  if(btnEmojiMenu && emojiPanel) {
+      btnEmojiMenu.addEventListener('click', (e) => {
+          e.stopPropagation();
+          emojiPanel.classList.toggle('hidden');
+          emojiPanel.classList.toggle('flex');
+      });
+      document.addEventListener('click', (e) => {
+          if (!emojiPanel.contains(e.target) && !btnEmojiMenu.contains(e.target)) {
+              emojiPanel.classList.add('hidden');
+              emojiPanel.classList.remove('flex');
+          }
+      });
+  }
+
+  const emojiBtns = document.querySelectorAll('.btn-emoji-reaction');
+  emojiBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const emoji = btn.getAttribute('data-emoji');
+          window.dispatchEvent(new CustomEvent('send-reaction', { detail: { emoji } }));
+          emojiPanel.classList.add('hidden');
+          emojiPanel.classList.remove('flex');
+      });
+  });
   if(btnSpeakerSheet) btnSpeakerSheet.onclick = () => notImplToast("Speaker Output");
   
   if(btnRecordSheet) {

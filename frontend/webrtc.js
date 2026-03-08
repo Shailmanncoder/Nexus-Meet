@@ -358,6 +358,14 @@ function connectAndJoin({ username, meetingId, consent, isHost, recordingMode })
             }
         }
     });
+
+    socket.on('reaction-received', (data) => {
+        showFlyingEmoji(data.emoji, data.socketId);
+    });
+
+    socket.on('hand-raised-received', (data) => {
+        toggleHandRaisedState(data.socketId, data.state);
+    });
 }
 
 function joinRoomPayload(meetingId, username, consent) {
@@ -588,6 +596,39 @@ function addVideoToGrid(id, stream, name, isLocal) {
     wrapper.appendChild(video);
     wrapper.appendChild(badge);
     
+    // Add specific record overlay button for remote users
+    if (!isLocal) {
+        const actionOverlay = document.createElement('div');
+        actionOverlay.className = 'absolute top-3 right-3 flex gap-2 z-20';
+        
+        const recBtn = document.createElement('button');
+        recBtn.className = 'w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 backdrop-blur shadow-sm transition-colors';
+        recBtn.title = 'Record selective meeting';
+        recBtn.innerHTML = '<i class="fa-solid fa-record-vinyl text-[14px]"></i>';
+        
+        recBtn.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if(window.toggleRecordingForUser) {
+                window.toggleRecordingForUser(id);
+                // The toggleRecordingForUser handles the activeRecorders state
+                setTimeout(() => {
+                    if (window.activeRecorders && window.activeRecorders[id]) {
+                        recBtn.classList.add('text-danger', 'bg-white');
+                        recBtn.classList.remove('bg-black/50', 'text-white');
+                        recBtn.innerHTML = '<i class="fa-solid fa-stop text-[14px] animate-pulse"></i>';
+                    } else {
+                        recBtn.classList.remove('text-danger', 'bg-white');
+                        recBtn.classList.add('bg-black/50', 'text-white');
+                        recBtn.innerHTML = '<i class="fa-solid fa-record-vinyl text-[14px]"></i>';
+                    }
+                }, 100);
+            }
+        };
+        actionOverlay.appendChild(recBtn);
+        wrapper.appendChild(actionOverlay);
+    }
+    
     // Default off state if no stream immediately available (or if it's disabled)
     if(!stream || (isLocal && !AppState.camEnabled)) {
          const offUI = document.createElement('div');
@@ -603,6 +644,11 @@ function addVideoToGrid(id, stream, name, isLocal) {
     grid.appendChild(wrapper);
     updateGridClasses();
     updateParticipantList();
+
+    if (isLocal) {
+        // Hook up the PIP drag events once local video is added
+        makePiPDraggable();
+    }
 }
 
 function attachStreamToVideo(id, stream) {
@@ -626,44 +672,146 @@ function removeVideoFromGrid(id) {
 function updateGridClasses() {
     const grid = document.getElementById('video-grid');
     if (!grid) return;
-    const tiles = grid.querySelectorAll('.video-tile-container');
-    const count = tiles.length;
     
-    // Toggle Mobile Picture-in-Picture Mode on the document body
-    // If there is EXACTLY 2 participants, and one is 'local', trigger 1-on-1 PiP mode
-    // We also make sure window is mobile size.
-    const hasLocal = document.getElementById('video-container-local');
-    if (count === 2 && hasLocal && window.innerWidth <= 768) {
+    // We treat local vs remote tiles completely differently on mobile
+    const allTiles = grid.querySelectorAll('.video-tile-container');
+    const localTile = document.getElementById('video-container-local');
+    const remoteTiles = grid.querySelectorAll('.video-tile-container:not(#video-container-local)');
+    
+    const count = allTiles.length;
+    const remoteCount = remoteTiles.length;
+    
+    const isMobile = window.innerWidth <= 768;
+
+    // Trigger Mobile PiP mode if we are on mobile, have local, and at least 1 remote
+    if (isMobile && localTile && remoteCount >= 1) {
         document.body.classList.add('mobile-pip-mode');
-        // Force the non-local video to render first in DOM so local sits on top
-        const localTile = hasLocal.closest('.video-tile-container');
-        if(localTile && localTile.nextElementSibling) {
-            grid.appendChild(localTile); // Move local to the end of the container
-        }
+        
+        // Let CSS handle the grid flex container layout properties
+        grid.className = "flex flex-col w-full h-full";
+        
+        // Stacking remotes dynamically 
+        remoteTiles.forEach(tile => {
+            if (remoteCount === 1) {
+                tile.className = "video-tile-container relative animate-fade-in w-full h-full";
+            } else if (remoteCount === 2) {
+                tile.className = "video-tile-container relative animate-fade-in w-full h-[50dvh]";
+            } else if (remoteCount === 3) {
+                tile.className = "video-tile-container relative animate-fade-in w-full h-[33.3dvh]";
+            } else {
+                // If 4+, let's just use CSS grid fallback
+                grid.className = "grid grid-cols-2 grid-rows-2 w-full h-full";
+                tile.className = "video-tile-container relative animate-fade-in w-full h-[50dvh]";
+            }
+        });
+
+        // Ensure local tile keeps base class, CSS handles absolute PiP positioning
+        localTile.className = "video-tile-container relative animate-fade-in cursor-move";
+        
+        // Append local tile to end of DOM so it renders on top without z-index fighting
+        grid.appendChild(localTile);
     } else {
+        // Desktop / Generic Layout Array Fallback
         document.body.classList.remove('mobile-pip-mode');
+        
+        grid.className = "flex flex-wrap justify-center items-center w-full max-w-7xl mx-auto h-full gap-2 p-4";
+        
+        // If someone is presenting, don't interfere with mini-grid layouts
+        if (grid.classList.contains('hidden')) return;
+
+        let wClass = '';
+        if (count === 1) {
+            wClass = 'w-full max-w-5xl h-[80vh] md:aspect-video mx-auto object-cover';
+        } else if (count === 2) {
+            wClass = 'w-1/2 md:w-5/12 aspect-video max-w-2xl mx-1 md:mx-2';
+        } else if (count <= 4) {
+            wClass = 'w-5/12 aspect-video max-w-2xl mx-1 md:mx-2';
+        } else if (count <= 9) {
+            wClass = 'w-[32%] aspect-video mx-1';
+        } else if (count <= 16) {
+            wClass = 'w-[23%] aspect-video mx-1';
+        } else {
+            wClass = 'w-[18vw] aspect-square mx-1';
+        }
+
+        allTiles.forEach(tile => {
+            tile.className = `video-tile-container relative animate-fade-in ${wClass} mb-2 md:mb-3 rounded-lg overflow-hidden`;
+        });
     }
+}
+
+function makePiPDraggable() {
+    const pip = document.getElementById('video-container-local');
+    if (!pip) return;
     
-    let wClass = '';
-    
-    if (count === 1) {
-        wClass = 'w-full max-w-5xl h-full md:aspect-video mx-auto object-cover';
-    } else if (count === 2) {
-        wClass = 'w-1/2 md:w-5/12 aspect-video max-w-2xl mx-1 md:mx-2';
-    } else if (count <= 4) {
-        wClass = 'w-5/12 aspect-video max-w-2xl mx-1 md:mx-2';
-    } else if (count <= 9) {
-        wClass = 'w-[32%] aspect-video mx-1';
-    } else if (count <= 16) {
-        wClass = 'w-[23%] aspect-video mx-1';
-    } else {
-        wClass = 'w-[18vw] aspect-square mx-1';
+    // Default initial bottom-right position if unset
+    if (!pip.style.left && !pip.style.top) {
+        pip.style.top = 'auto'; 
+        pip.style.left = 'auto';
+        pip.style.bottom = '120px';
+        pip.style.right = '16px';
     }
 
-    tiles.forEach(tile => {
-        // Apply responsive generic class. The mobile-pip-mode CSS overrides this if active.
-        tile.className = `video-tile-container relative animate-fade-in ${wClass} mb-2 md:mb-3`;
-    });
+    let isDragging = false;
+    let initialX, initialY, startLeft, startTop;
+
+    const dragStart = (e) => {
+        if (!document.body.classList.contains('mobile-pip-mode')) return;
+        const target = e.target.closest('.video-tile-container');
+        if (target !== pip) return;
+        
+        isDragging = true;
+        
+        // Convert bottom/right defaults to explicit top/left before dragging
+        const rect = pip.getBoundingClientRect();
+        pip.style.bottom = 'auto';
+        pip.style.right = 'auto';
+        pip.style.top = rect.top + 'px';
+        pip.style.left = rect.left + 'px';
+
+        initialX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
+        initialY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+        
+        startLeft = parseFloat(pip.style.left);
+        startTop = parseFloat(pip.style.top);
+    };
+
+    const drag = (e) => {
+        if (!isDragging) return;
+        e.preventDefault(); 
+        
+        const currentX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
+        const currentY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+        
+        const dx = currentX - initialX;
+        const dy = currentY - initialY;
+        
+        let newX = startLeft + dx;
+        let newY = startTop + dy;
+        
+        // Bounds checking against viewport
+        const maxX = window.innerWidth - pip.offsetWidth;
+        const maxY = window.innerHeight - pip.offsetHeight;
+        
+        newX = Math.max(0, Math.min(newX, maxX));
+        newY = Math.max(0, Math.min(newY, maxY));
+        
+        pip.style.left = newX + 'px';
+        pip.style.top = newY + 'px';
+    };
+
+    const dragEnd = () => {
+        isDragging = false;
+    };
+
+    // Binding listeners safely
+    pip.addEventListener('touchstart', dragStart, { passive: false });
+    document.addEventListener('touchmove', drag, { passive: false });
+    document.addEventListener('touchend', dragEnd);
+    
+    pip.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
 }
 
 // Device Selection Utils

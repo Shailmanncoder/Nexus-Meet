@@ -205,6 +205,20 @@
                 <i class="fa-regular fa-hand text-[18px]"></i>
             </button>
             
+            <!-- Emoji Reaction Button overlay -->
+            <div class="relative group">
+                <button id="btn-emoji-menu" class="w-[48px] h-[48px] rounded-full flex items-center justify-center text-white bg-[#3c4043] hover:bg-[#4a4d51] transition-colors tooltip-wrapper" data-tooltip="Send Reaction">
+                    <i class="fa-regular fa-face-smile text-[18px]"></i>
+                </button>
+                <div id="emoji-panel" class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-[#202124] border border-gray-700 p-2 rounded-full hidden items-center gap-2 shadow-xl whitespace-nowrap">
+                    <button class="btn-emoji-reaction text-xl hover:scale-125 transition-transform" data-emoji="👍">👍</button>
+                    <button class="btn-emoji-reaction text-xl hover:scale-125 transition-transform" data-emoji="❤️">❤️</button>
+                    <button class="btn-emoji-reaction text-xl hover:scale-125 transition-transform" data-emoji="😂">😂</button>
+                    <button class="btn-emoji-reaction text-xl hover:scale-125 transition-transform" data-emoji="👏">👏</button>
+                    <button class="btn-emoji-reaction text-xl hover:scale-125 transition-transform" data-emoji="🎉">🎉</button>
+                </div>
+            </div>
+
             <!-- More options -->
             <div class="relative group dropdown-container">
                 <button id="btn-more-options" class="w-[48px] h-[48px] rounded-full flex items-center justify-center text-white bg-[#3c4043] hover:bg-[#4a4d51] transition-colors tooltip-wrapper" data-tooltip="More options">
