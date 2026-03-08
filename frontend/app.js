@@ -97,17 +97,78 @@ function showToast(message, type = 'blue') {
 // HOME SCREEN LOGIC
 // -----------------------------------------------------
 function bindHomeEvents() {
-  const btnCreate = document.getElementById('btn-create-meeting-mobile') || document.getElementById('btn-create-meeting');
+  const btnCreateMobile = document.getElementById('btn-create-meeting-mobile');
+  const btnCreateLegacy = document.getElementById('btn-create-meeting');
   const btnJoinFromHome = document.getElementById('btn-join-from-home');
   const inputCode = document.getElementById('input-join-code');
+  const sheet = document.getElementById('new-meeting-sheet');
+  const sheetContent = sheet ? sheet.querySelector('.sheet-content') : null;
 
-  // Show host configuration (recording choice) - Now a separate page OR handled by instant meeting
-  if(btnCreate) {
-      btnCreate.addEventListener('click', () => {
-        const newCode = Array.from(Array(8), () => Math.floor(Math.random() * 36).toString(36)).join('');
-        const meetingId = newCode.slice(0, 3) + '-' + newCode.slice(3, 7) + '-' + newCode.slice(7);
-        // Direct to prejoin as host
-        window.location.href = `legal.html?code=${meetingId}&host=true`;
+  // Initialize Home Avatar
+  const homeAvatar = document.getElementById('home-user-avatar');
+  if(homeAvatar) {
+      const savedName = localStorage.getItem('nexusmeet_username');
+      if(savedName) {
+          homeAvatar.textContent = savedName.charAt(0).toUpperCase();
+      }
+  }
+
+  // Toggling the New Meeting Sheet
+  const openSheet = () => {
+      if(sheet) {
+          sheet.classList.remove('hidden');
+          if(sheetContent) {
+              setTimeout(() => sheetContent.classList.remove('translate-y-full'), 10);
+          }
+      }
+  };
+  
+  const closeSheet = () => {
+      if(sheet && sheetContent) {
+          sheetContent.classList.add('translate-y-full');
+          setTimeout(() => sheet.classList.add('hidden'), 150); // Match transition duration
+      }
+  };
+
+  if(btnCreateMobile) btnCreateMobile.addEventListener('click', openSheet);
+  if(btnCreateLegacy) btnCreateLegacy.addEventListener('click', openSheet);
+  
+  // Close sheet when clicking overlay
+  if(sheet) {
+      sheet.addEventListener('click', (e) => {
+          if (e.target === sheet) closeSheet();
+      });
+  }
+
+  // Sheet Option 1: Get Link to Share
+  const btnGetLink = document.getElementById('btn-get-link');
+  if(btnGetLink) {
+      btnGetLink.addEventListener('click', () => {
+          const newCode = Array.from(Array(8), () => Math.floor(Math.random() * 36).toString(36)).join('');
+          const meetingId = newCode.slice(0, 3) + '-' + newCode.slice(3, 7) + '-' + newCode.slice(7);
+          const joinUrl = `${window.location.origin}${window.location.pathname.replace('index.html', 'legal.html')}?code=${meetingId}`;
+          navigator.clipboard.writeText(joinUrl).then(() => {
+             showToast('Meeting link copied to clipboard', 'blue');
+             closeSheet();
+          });
+      });
+  }
+
+  // Sheet Option 2: Start an instant meeting
+  const btnInstant = document.getElementById('btn-instant-meeting');
+  if(btnInstant) {
+      btnInstant.addEventListener('click', () => {
+          const newCode = Array.from(Array(8), () => Math.floor(Math.random() * 36).toString(36)).join('');
+          const meetingId = newCode.slice(0, 3) + '-' + newCode.slice(3, 7) + '-' + newCode.slice(7);
+          window.location.href = `legal.html?code=${meetingId}&host=true`;
+      });
+  }
+
+  // Sheet Option 3: Schedule
+  const btnScheduleSheet = document.getElementById('btn-schedule-meeting-sheet');
+  if(btnScheduleSheet) {
+      btnScheduleSheet.addEventListener('click', () => {
+          window.location.href = 'schedule.html';
       });
   }
 
@@ -189,6 +250,13 @@ function initPrejoin() {
   const btnJoin = document.getElementById('btn-join-meeting');
   const inputName = document.getElementById('input-username');
   
+  // Pre-fill username if available
+  const savedName = localStorage.getItem('nexusmeet_username');
+  if(savedName && inputName) {
+      inputName.value = savedName;
+      if(btnJoin) btnJoin.disabled = false;
+  }
+  
   inputName.addEventListener('input', () => {
     btnJoin.disabled = inputName.value.trim().length === 0;
   });
@@ -196,6 +264,7 @@ function initPrejoin() {
   btnJoin.onclick = () => {
     AppState.username = inputName.value.trim();
     if(AppState.username) {
+       localStorage.setItem('nexusmeet_username', AppState.username);
        window.location.href = `meeting.html?code=${AppState.meetingId}&name=${encodeURIComponent(AppState.username)}&host=${AppState.isHost}&rec=${AppState.recordingMode}&consent=${AppState.consentGiven}`;
     }
   };
@@ -537,6 +606,8 @@ function bindMeetingControls() {
   }
 
   // Links info (copy link in detail panel)
+  const btnCopyLinkPanel = document.getElementById('btn-copy-link-panel');
+  if(btnCopyLinkPanel) btnCopyLinkPanel.addEventListener('click', () => copyInfo());
 
   
   // More Options Bottom Sheet logic implementation
@@ -567,10 +638,36 @@ function bindMeetingControls() {
       });
   }
 
-  // Top header elements (meeting code, time)
+  // Bind un-implemented features to dummy toasts to ensure buttons are 'real'
+  const notImplToast = (feature) => {
+      showToast(`${feature} will be implemented in a future update.`, "blue");
+      // Close bottom sheet if open
+      if(moreSheet) {
+          const sheetContent = moreSheet.querySelector('.sheet-content');
+          if (sheetContent) sheetContent.classList.add('translate-y-full');
+          setTimeout(() => moreSheet.classList.add('hidden'), 300);
+      }
+  };
+
+  const btnRaiseHand = document.getElementById('btn-raise-hand');
+  const btnRaiseHandSheet = document.getElementById('btn-raise-hand-sheet');
+  const btnCaptionsSheet = document.getElementById('btn-captions-sheet');
+  const btnSpeakerSheet = document.getElementById('btn-speaker-sheet');
+
+  if(btnRaiseHand) btnRaiseHand.onclick = () => notImplToast("Raise Hand");
+  if(btnRaiseHandSheet) btnRaiseHandSheet.onclick = () => notImplToast("Raise Hand");
+  if(btnCaptionsSheet) btnCaptionsSheet.onclick = () => notImplToast("Live Captions");
+  if(btnSpeakerSheet) btnSpeakerSheet.onclick = () => notImplToast("Speaker Output");
+
+  // Top header elements (meeting code, time, avatar)
   const headerCodeDisplay = document.getElementById('meeting-code-display');
   const headerCodeMobile = document.getElementById('meeting-code-display-mobile');
   const footerCodeDisplay = document.getElementById('footer-meeting-code');
+  const headerAvatar = document.getElementById('header-user-avatar');
+  
+  if(headerAvatar && AppState.username) {
+      headerAvatar.textContent = AppState.username.charAt(0).toUpperCase();
+  }
   
   const setupCodeCopy = (el) => {
       if(!el) return;

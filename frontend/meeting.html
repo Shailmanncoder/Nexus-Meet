@@ -73,7 +73,7 @@
                 <i class="fa-solid fa-camera-rotate text-sm"></i>
             </button>
             <span id="meeting-timer" class="font-medium text-sm text-white hidden sm:block pointer-events-none drop-shadow-md">00:00</span>
-            <div class="flex items-center justify-center w-8 h-8 rounded-full bg-brand shadow font-medium text-xs hidden sm:flex">
+            <div id="header-user-avatar" class="flex items-center justify-center w-8 h-8 rounded-full bg-brand shadow font-medium text-xs hidden sm:flex">
                 You
             </div>
         </div>
@@ -223,15 +223,15 @@
                                 <i class="fa-solid fa-arrow-up-from-bracket text-2xl text-white"></i>
                                 <span class="text-xs font-medium text-gray-300">Share screen</span>
                             </button>
-                            <button class="flex flex-col items-center justify-center bg-[#3c4043] hover:bg-[#4a4d51] rounded-2xl aspect-square gap-3 transition-colors sm:hidden">
+                            <button id="btn-raise-hand-sheet" class="flex flex-col items-center justify-center bg-[#3c4043] hover:bg-[#4a4d51] rounded-2xl aspect-square gap-3 transition-colors sm:hidden">
                                 <i class="fa-regular fa-hand text-2xl text-white"></i>
                                 <span class="text-xs font-medium text-gray-300">Raise Hand</span>
                             </button>
-                            <button class="hidden sm:flex flex-col items-center justify-center bg-[#3c4043] hover:bg-[#4a4d51] rounded-2xl aspect-square gap-3 transition-colors">
+                            <button id="btn-captions-sheet" class="hidden sm:flex flex-col items-center justify-center bg-[#3c4043] hover:bg-[#4a4d51] rounded-2xl aspect-square gap-3 transition-colors">
                                 <i class="fa-regular fa-closed-captioning text-2xl text-white"></i>
                                 <span class="text-xs font-medium text-gray-300">Captions</span>
                             </button>
-                            <button class="hidden sm:flex flex-col items-center justify-center bg-[#3c4043] hover:bg-[#4a4d51] rounded-2xl aspect-square gap-3 transition-colors">
+                            <button id="btn-speaker-sheet" class="hidden sm:flex flex-col items-center justify-center bg-[#3c4043] hover:bg-[#4a4d51] rounded-2xl aspect-square gap-3 transition-colors">
                                 <i class="fa-solid fa-volume-high text-2xl text-white"></i>
                                 <span class="text-xs font-medium text-gray-300">Speaker</span>
                             </button>
