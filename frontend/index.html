@@ -83,17 +83,18 @@
                     New meeting
                 </button>
                 
-                <div class="w-full sm:w-auto relative group flex items-center">
-                    <button class="w-full sm:w-auto h-12 flex items-center justify-center px-6 rounded-full border border-gray-400 text-[#0b57d0] font-medium text-[14px] hover:bg-blue-50 transition-all cursor-pointer">
-                        Join with a code
+                <div class="w-full sm:w-auto flex items-center gap-2 group relative">
+                    <div class="absolute left-3 text-gray-500 pointer-events-none">
+                        <i class="fa-regular fa-keyboard text-[18px]"></i>
+                    </div>
+                    <input type="text" id="input-join-code" class="w-full sm:w-auto h-12 pl-10 pr-4 rounded-md border border-gray-400 text-gray-700 text-[15px] focus:outline-none focus:border-[#0b57d0] focus:ring-1 focus:ring-[#0b57d0] transition-colors placeholder-gray-500 bg-transparent hover:border-gray-600" placeholder="Enter a code or link" autocomplete="off">
+                    <button id="btn-join-from-home" class="h-10 px-4 rounded-full text-[#0b57d0] hover:bg-blue-50 font-medium text-[15px] transition-colors disabled:text-gray-400 disabled:hover:bg-transparent disabled:cursor-auto" disabled>
+                        Join
                     </button>
-                    <!-- Hidden input for the actual logic to attach to later -->
-                    <input type="text" id="input-join-code" class="absolute inset-0 opacity-0 cursor-text w-full" placeholder="Code">
                 </div>
             </div>
             <!-- Keep hidden for compat with old logic -->
             <button id="btn-create-meeting" class="hidden"></button>
-            <button id="btn-join-from-home" class="hidden"></button>
             <button id="btn-schedule-meeting" class="hidden"></button>
         </div>
 

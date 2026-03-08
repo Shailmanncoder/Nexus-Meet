@@ -172,34 +172,51 @@ function bindHomeEvents() {
       });
   }
 
-  // User input validation
+  // User input validation & formatting for Join Code
   if(inputCode) {
-      inputCode.addEventListener('input', () => {
-        if(btnJoinFromHome) btnJoinFromHome.disabled = inputCode.value.trim().length < 3;
+      inputCode.addEventListener('input', (e) => {
+          // Remove all non-alphanumeric characters
+          let val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+          
+          // Auto-format as xxx-xxxx-xxx if it's just characters
+          if (val.length > 0 && !e.target.value.includes('http')) {
+              if (val.length > 7) {
+                  val = val.substring(0, 3) + '-' + val.substring(3, 7) + '-' + val.substring(7, 10);
+              } else if (val.length > 3) {
+                  val = val.substring(0, 3) + '-' + val.substring(3, 7);
+              }
+              // Only update if we changed something to avoid cursor jumping too much
+              if (e.target.value !== val) {
+                 e.target.value = val;
+              }
+          }
+          
+          // Enable join button if length >= 3
+          if(btnJoinFromHome) {
+              btnJoinFromHome.disabled = val.length < 3;
+          }
       });
 
       inputCode.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter' && inputCode.value.trim().length >= 3) {
+          if (e.key === 'Enter' && !btnJoinFromHome.disabled) {
               e.preventDefault();
-              const code = inputCode.value.trim();
-              let parsedCode = code;
-              if (code.includes('?code=')) {
-                  parsedCode = new URL(code).searchParams.get('code');
-              }
-              window.location.href = `legal.html?code=${parsedCode}&host=false`;
+              btnJoinFromHome.click();
           }
       });
   }
 
   if(btnJoinFromHome) {
       btnJoinFromHome.addEventListener('click', () => {
-        const code = inputCode.value.trim();
+        let code = inputCode.value.trim();
         if(code) {
-          let parsedCode = code;
+          // Extract code if a full URL was pasted
           if (code.includes('?code=')) {
-              parsedCode = new URL(code).searchParams.get('code');
+              code = new URL(code).searchParams.get('code');
+          } else if (code.includes('/')) {
+              // Handle url format without ?code= if pasted directly
+              code = code.split('/').pop();
           }
-          window.location.href = `legal.html?code=${parsedCode}&host=false`;
+          window.location.href = `legal.html?code=${code}&host=false`;
         }
       });
   }
