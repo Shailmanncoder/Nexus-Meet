@@ -1,5 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 
+const scheduledMeetings = require('./scheduled_meetings');
+
 // In-memory meeting store
 const activeMeetings = new Map();
 
@@ -14,6 +16,7 @@ function createMeeting(hostSocketId, providedId) {
   activeMeetings.set(meetingId, {
     id: meetingId,
     host: hostSocketId,
+    coHosts: [], // Add co-hosts array
     participants: [],
     waitingRoom: [],
     recording: false,
@@ -23,6 +26,19 @@ function createMeeting(hostSocketId, providedId) {
 }
 
 function joinMeeting(meetingId, socketId, username, consent) {
+  // Check schedule constraints first
+  const scheduleRules = scheduledMeetings.getMeetingRules(meetingId);
+  if (scheduleRules) {
+      const now = new Date();
+      if (now < scheduleRules.notBefore) {
+          const diffMins = Math.ceil((scheduleRules.scheduledTime - now) / 60000);
+          return { success: false, message: `Meeting has not started yet. Please check back in ${diffMins} minutes.` };
+      }
+      if (now > scheduleRules.notAfter) {
+          return { success: false, message: `Meeting has already ended or expired.` };
+      }
+  }
+
   const meeting = activeMeetings.get(meetingId);
   if (!meeting) {
     // Auto-create for flexibility
@@ -96,6 +112,27 @@ function isHost(meetingId, socketId) {
   return meeting && meeting.host === socketId;
 }
 
+function addCoHost(meetingId, socketId) {
+  const meeting = activeMeetings.get(meetingId);
+  if (!meeting) return false;
+  if (!meeting.coHosts.includes(socketId)) {
+    meeting.coHosts.push(socketId);
+  }
+  return true;
+}
+
+function removeCoHost(meetingId, socketId) {
+  const meeting = activeMeetings.get(meetingId);
+  if (!meeting) return false;
+  meeting.coHosts = meeting.coHosts.filter(id => id !== socketId);
+  return true;
+}
+
+function isCoHost(meetingId, socketId) {
+  const meeting = activeMeetings.get(meetingId);
+  return meeting && meeting.coHosts.includes(socketId);
+}
+
 function generateMeetingId() {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let id = '';
@@ -116,5 +153,8 @@ module.exports = {
   addToWaitingRoom,
   admitFromWaitingRoom,
   removeFromWaitingRoom,
-  isHost
+  isHost,
+  addCoHost,
+  removeCoHost,
+  isCoHost
 };

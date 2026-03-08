@@ -121,6 +121,10 @@ function connectAndJoin({ username, meetingId, consent, isHost, recordingMode })
     });
 
     socket.on('users-in-room', (data) => {
+        // Init cohosts
+        AppState.coHosts = data.coHosts || [];
+        AppState.isCoHost = AppState.coHosts.includes(socket.id);
+
         // Add ourselves to the grid first
         addVideoToGrid('local', localStream, username, true);
         
@@ -255,6 +259,44 @@ function connectAndJoin({ username, meetingId, consent, isHost, recordingMode })
              if(AppState.micEnabled) document.getElementById('btn-toggle-mic').click();
              showToast("The host has muted your microphone.", "warning");
          }
+    });
+
+    socket.on('force-mute', () => {
+         if(AppState.micEnabled) document.getElementById('btn-toggle-mic').click();
+         showToast("You were muted by the Host/Co-Host.", "warning");
+    });
+
+    socket.on('force-remove', () => {
+         showToast("You were removed by the Host/Co-Host.", "red");
+         setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+    });
+
+    socket.on('cohost-assigned', payload => {
+         if(!AppState.coHosts) AppState.coHosts = [];
+         if(!AppState.coHosts.includes(payload.socketId)) AppState.coHosts.push(payload.socketId);
+         
+         if(payload.socketId === socket.id) {
+             AppState.isCoHost = true;
+             showToast("You have been made a Co-Host.", "green");
+             document.getElementById('host-controls-section').classList.remove('hidden');
+         } else {
+             const pname = peers[payload.socketId] ? peers[payload.socketId].username : 'A user';
+             showToast(`${pname} is now a Co-Host.`, "blue");
+         }
+         updateParticipantList();
+    });
+
+    socket.on('cohost-removed', payload => {
+         if(AppState.coHosts) {
+             AppState.coHosts = AppState.coHosts.filter(id => id !== payload.socketId);
+         }
+         
+         if(payload.socketId === socket.id) {
+             AppState.isCoHost = false;
+             showToast("Your Co-Host privileges have been removed.", "warning");
+             if(!AppState.isHost) document.getElementById('host-controls-section').classList.add('hidden');
+         }
+         updateParticipantList();
     });
 
     // Whiteboard socket listeners
@@ -550,9 +592,16 @@ function updateGridClasses() {
     const count = tiles.length;
     
     // Toggle Mobile Picture-in-Picture Mode on the document body
-    // If there is more than 1 participant, switch local video to pip mode for mobile
-    if (count > 1) {
+    // If there is EXACTLY 2 participants, and one is 'local', trigger 1-on-1 PiP mode
+    // We also make sure window is mobile size.
+    const hasLocal = document.getElementById('video-container-local');
+    if (count === 2 && hasLocal && window.innerWidth <= 768) {
         document.body.classList.add('mobile-pip-mode');
+        // Force the non-local video to render first in DOM so local sits on top
+        const localTile = hasLocal.closest('.video-tile-container');
+        if(localTile && localTile.nextElementSibling) {
+            grid.appendChild(localTile); // Move local to the end of the container
+        }
     } else {
         document.body.classList.remove('mobile-pip-mode');
     }
@@ -560,11 +609,11 @@ function updateGridClasses() {
     let wClass = '';
     
     if (count === 1) {
-        wClass = 'w-full max-w-5xl aspect-video mx-auto';
+        wClass = 'w-full max-w-5xl h-full md:aspect-video mx-auto object-cover';
     } else if (count === 2) {
-        wClass = 'w-5/12 aspect-video max-w-2xl mx-2';
+        wClass = 'w-1/2 md:w-5/12 aspect-video max-w-2xl mx-1 md:mx-2';
     } else if (count <= 4) {
-        wClass = 'w-5/12 aspect-video max-w-2xl mx-2';
+        wClass = 'w-5/12 aspect-video max-w-2xl mx-1 md:mx-2';
     } else if (count <= 9) {
         wClass = 'w-[32%] aspect-video mx-1';
     } else if (count <= 16) {
@@ -574,12 +623,8 @@ function updateGridClasses() {
     }
 
     tiles.forEach(tile => {
-        // Special case for PiP local video: don't override its absolute classes
-        if (count > 1 && tile.id === 'video-container-local') {
-            tile.className = 'video-tile-container mobile-local-pip transition-all animate-fade-in relative';
-        } else {
-            tile.className = `video-tile-container relative animate-fade-in ${wClass} mb-3`;
-        }
+        // Apply responsive generic class. The mobile-pip-mode CSS overrides this if active.
+        tile.className = `video-tile-container relative animate-fade-in ${wClass} mb-2 md:mb-3`;
     });
 }
 
@@ -619,24 +664,36 @@ window.getPeersInfo = () => {
 // Handle generic participant list UI updater
 function updateParticipantList() {
     const listUI = document.getElementById('participants-list');
-    const countBadge = document.getElementById('badge-participant-count');
+    const badgeMap1 = document.getElementById('sheet-participant-count');
     const countText = document.getElementById('participant-count');
     
     if(!listUI) return;
     
     const plist = window.getPeersInfo();
     
-    if(countBadge) countBadge.textContent = plist.length;
+    if(badgeMap1) badgeMap1.textContent = plist.length;
     if(countText) countText.textContent = plist.length;
 
     listUI.innerHTML = '';
     plist.forEach(p => {
+        let roles = [];
+        if(p.id === 'local' && AppState.isHost) roles.push('Host');
+        else if (window.hostId === p.id) roles.push('Host'); // We set hostId from host-info event
+        
+        if(p.id === 'local' && AppState.isCoHost) roles.push('Co-Host');
+        else if(AppState.coHosts && AppState.coHosts.includes(p.id)) roles.push('Co-Host');
+
+        let roleHTML = roles.length > 0 ? `<div class="text-[10px] text-gray-500 font-mono">${roles.join(', ')}</div>` : '';
+
         const li = document.createElement('li');
         li.className = 'flex items-center justify-between p-2 hover:bg-white/5 rounded-md';
         li.innerHTML = `
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-xs font-bold shadow">${p.name.charAt(0).toUpperCase()}</div>
-                <span class="text-sm font-medium text-gray-200">${p.name}</span>
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-200">${p.name}</span>
+                    ${roleHTML}
+                </div>
             </div>
             <div class="text-gray-400 flex gap-2">
                 <i class="fa-solid fa-microphone text-xs"></i>
@@ -645,3 +702,75 @@ function updateParticipantList() {
         listUI.appendChild(li);
     });
 }
+
+// Global context menu handler hook
+window.addEventListener('show-context-menu', (e) => {
+    const { x, y, id, name } = e.detail;
+    const menu = document.getElementById('video-context-menu');
+    const hostOps = document.getElementById('ctx-host-options');
+    
+    // Only show host options if local user is host or cohost AND target is NOT local user
+    if((AppState.isHost || AppState.isCoHost) && id !== 'local') {
+        hostOps.classList.remove('hidden');
+        
+        // Setup Co-Host Make/Remove buttons (Host Only)
+        const btnMake = document.getElementById('ctx-make-cohost');
+        const btnRemove = document.getElementById('ctx-remove-cohost');
+        
+        if (AppState.isHost) {
+            btnMake.classList.remove('hidden');
+            btnMake.onclick = () => {
+                socket.emit('make-cohost', { targetSocketId: id });
+                menu.classList.add('hidden');
+            };
+            btnRemove.onclick = () => {
+                socket.emit('remove-cohost', { targetSocketId: id });
+                menu.classList.add('hidden');
+            };
+
+            const isalreadyCoHost = AppState.coHosts && AppState.coHosts.includes(id);
+            if(isalreadyCoHost) {
+                btnMake.classList.add('hidden');
+                btnRemove.classList.remove('hidden');
+            } else {
+                btnMake.classList.remove('hidden');
+                btnRemove.classList.add('hidden');
+            }
+        } else {
+            // Co-hosts cannot make other co-hosts
+            btnMake.classList.add('hidden');
+            btnRemove.classList.add('hidden');
+        }
+
+        // Setup Mute/Remove
+        document.getElementById('ctx-mute').onclick = () => {
+            socket.emit('remote-mute', { targetSocketId: id });
+            menu.classList.add('hidden');
+        };
+        document.getElementById('ctx-remove').onclick = () => {
+            // CoHost cannot remove Host (handled loosely in UI, strictly on backend)
+            socket.emit('remote-remove', { targetSocketId: id });
+            menu.classList.add('hidden');
+        };
+    } else {
+        hostOps.classList.add('hidden');
+    }
+
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+    menu.classList.remove('hidden');
+});
+
+// Hide context menu when clicking elsewhere
+document.addEventListener('click', () => {
+    const menu = document.getElementById('video-context-menu');
+    if(menu && !menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+    }
+});
+
+// Store global hostId from app event
+window.addEventListener('host-info', (e) => {
+    window.hostId = e.detail.hostId;
+    updateParticipantList();
+});

@@ -8,6 +8,11 @@ function scheduleMeeting(datetimeStr, emailsStr) {
   if (isNaN(meetingTime.getTime())) {
     throw new Error('Invalid date/time format');
   }
+  
+  // Ensure meeting is scheduled in the future
+  if (meetingTime <= new Date()) {
+    throw new Error('Meeting time must be in the future');
+  }
 
   // Generate a meeting ID
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -37,8 +42,24 @@ function markReminderSent(meetingId) {
   if (mtg) mtg.reminderSent = true;
 }
 
+function getMeetingRules(meetingId) {
+  const mtg = scheduled.find(m => m.meetingId === meetingId);
+  if (!mtg) return null;
+
+  // Define allowed window (e.g., 10 minutes before, 60 minutes after scheduled time)
+  const notBefore = new Date(mtg.time.getTime() - 10 * 60 * 1000); // 10 mins before
+  const notAfter = new Date(mtg.time.getTime() + 60 * 60 * 1000);  // 60 mins after (default duration)
+  
+  return {
+      scheduledTime: mtg.time,
+      notBefore,
+      notAfter
+  };
+}
+
 module.exports = {
   scheduleMeeting,
   getUpcomingMeetings,
-  markReminderSent
+  markReminderSent,
+  getMeetingRules
 };

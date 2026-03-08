@@ -34,9 +34,11 @@ function initSignaling(io) {
 
       // Tell the new user about existing users
       const usersInRoom = meetings.getUsersInMeeting(meetingId).filter(u => u.socketId !== socket.id);
+      const meetingData = meetings.activeMeetings ? meetings.activeMeetings.get(meetingId) : {coHosts:[]};
       socket.emit('users-in-room', {
         users: usersInRoom,
         host: meetings.getHost(meetingId),
+        coHosts: meetingData ? meetingData.coHosts : [],
         recording: meetings.isRecording(meetingId)
       });
 
@@ -132,9 +134,42 @@ function initSignaling(io) {
       }
     });
 
+    // === Co-Host Management ===
+    socket.on('make-cohost', (data) => {
+      // Allow only the original Host to make someone a co-host
+      if (socket.meetingId && meetings.isHost(socket.meetingId, socket.id)) {
+         meetings.addCoHost(socket.meetingId, data.targetSocketId);
+         io.to(socket.meetingId).emit('cohost-assigned', { socketId: data.targetSocketId });
+      }
+    });
+
+    socket.on('remove-cohost', (data) => {
+      if (socket.meetingId && meetings.isHost(socket.meetingId, socket.id)) {
+         meetings.removeCoHost(socket.meetingId, data.targetSocketId);
+         io.to(socket.meetingId).emit('cohost-removed', { socketId: data.targetSocketId });
+      }
+    });
+    
+    // Remote actions (Host/Co-Host)
+    socket.on('remote-mute', (data) => {
+      if (socket.meetingId && (meetings.isHost(socket.meetingId, socket.id) || meetings.isCoHost(socket.meetingId, socket.id))) {
+         io.to(data.targetSocketId).emit('force-mute');
+      }
+    });
+    
+    socket.on('remote-remove', (data) => {
+      if (socket.meetingId && (meetings.isHost(socket.meetingId, socket.id) || meetings.isCoHost(socket.meetingId, socket.id))) {
+         // Prevent removing the original host
+         if(!meetings.isHost(socket.meetingId, data.targetSocketId)) {
+            io.to(data.targetSocketId).emit('force-remove');
+         }
+      }
+    });
+
     // Handle disconnect
     socket.on('disconnect', () => {
       if (socket.meetingId) {
+        meetings.removeCoHost(socket.meetingId, socket.id);
         const result = meetings.leaveMeeting(socket.meetingId, socket.id);
         if (result === 'left') {
           socket.to(socket.meetingId).emit('user-left', { socketId: socket.id });
